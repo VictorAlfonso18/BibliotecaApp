@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.kotlin.android)
 }
 
 android {
@@ -37,6 +38,9 @@ android {
     buildFeatures {
         compose = true
     }
+    kotlinOptions {
+        jvmTarget = "11"
+    }
 }
 
 dependencies {
@@ -56,5 +60,10 @@ dependencies {
     androidTestImplementation(libs.androidx.junit)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     debugImplementation(libs.androidx.compose.ui.tooling)
-    implementation("io.github.jan-tenner.supabase-kt:storage-kt:VERSION")
+    debugImplementation(libs.androidx.compose.ui.tooling.preview)
+
 }
+    //implementation("io.github.jan-tenner.supabase:supabase-kt:2.5.1")
+    //implementation("io.github.jan-tenner.supabase:gotrue-kt:2.5.1")
+    //implementation("io.github.jan-tenner.supabase:postgrest-kt:2.5.1")
+

@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
@@ -17,15 +18,19 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewScreenSizes
+import com.example.biblioteca.ui.screen.LibrosScreen
+import com.example.biblioteca.ui.screen.PerfilScreen
+import com.example.biblioteca.ui.screen.PrestamosScreen
+import com.example.biblioteca.ui.screen.LoginScreen
+import com.example.biblioteca.ui.screen.RegistroScreen
 import com.example.biblioteca.ui.theme.BibliotecaTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
         setContent {
             BibliotecaTheme {
                 BibliotecaApp()
@@ -37,30 +42,80 @@ class MainActivity : ComponentActivity() {
 @PreviewScreenSizes
 @Composable
 fun BibliotecaApp() {
-    var currentDestination by rememberSaveable { mutableStateOf(AppDestinations.HOME) }
 
-    NavigationSuiteScaffold(
-        navigationSuiteItems = {
-            AppDestinations.entries.forEach {
-                item(
-                    icon = {
-                        Icon(
-                            painterResource(it.icon),
-                            contentDescription = it.label
+    // La app arranca directo en la pantalla limpia de LOGIN
+    var currentDestination by rememberSaveable {
+        mutableStateOf(AppDestinations.LOGIN)
+    }
+
+    // Oculta la barra de navegación de abajo si estamos en LOGIN o REGISTRO
+    val showNavigationBars = currentDestination != AppDestinations.LOGIN && currentDestination != AppDestinations.REGISTRO
+
+    if (showNavigationBars) {
+        NavigationSuiteScaffold(
+            navigationSuiteItems = {
+                // Solo dibuja en la barra de abajo los elementos marcados con showInBottomBar = true
+                AppDestinations.entries
+                    .filter { it.showInBottomBar }
+                    .forEach { destination ->
+                        item(
+                            icon = {
+                                Icon(
+                                    painter = painterResource(destination.icon),
+                                    contentDescription = destination.label
+                                )
+                            },
+                            label = {
+                                Text(destination.label)
+                            },
+                            selected = destination == currentDestination,
+                            onClick = {
+                                currentDestination = destination
+                            }
                         )
-                    },
-                    label = { Text(it.label) },
-                    selected = it == currentDestination,
-                    onClick = { currentDestination = it }
-                )
+                    }
             }
+        ) {
+            MainContentWrapper(currentDestination) { currentDestination = it }
         }
-    ) {
-        Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-            Greeting(
-                name = "Android",
-                modifier = Modifier.padding(innerPadding)
-            )
+    } else {
+        MainContentWrapper(currentDestination) { currentDestination = it }
+    }
+}
+
+@Composable
+fun MainContentWrapper(currentDestination: AppDestinations, onNavigate: (AppDestinations) -> Unit) {
+    Scaffold(
+        modifier = Modifier.fillMaxSize()
+    ) { innerPadding ->
+        Box(
+            modifier = Modifier.padding(innerPadding)
+        ) {
+            when (currentDestination) {
+                AppDestinations.LOGIN -> {
+                    LoginScreen(
+                        onLoginSuccess = { correoDigitado, passwordDigitado ->
+                            // Aquí es donde tu compañero meterá la corrutina de Supabase.
+                            // Por ahora, al dar clic ingresa directo para que pruebes la navegación.
+                            onNavigate(AppDestinations.HOME)
+                        },
+                        onNavigateToRegistro = {
+                            onNavigate(AppDestinations.REGISTRO)
+                        }
+                    )
+                }
+                AppDestinations.REGISTRO -> {
+                    RegistroScreen(
+                        onRegistroSuccess = {
+                            // Al registrarse, lo regresa al Login
+                            onNavigate(AppDestinations.LOGIN)
+                        }
+                    )
+                }
+                AppDestinations.HOME -> { LibrosScreen() }
+                AppDestinations.FAVORITES -> { PrestamosScreen() }
+                AppDestinations.PROFILE -> { PerfilScreen() }
+            }
         }
     }
 }
@@ -68,24 +123,11 @@ fun BibliotecaApp() {
 enum class AppDestinations(
     val label: String,
     val icon: Int,
+    val showInBottomBar: Boolean
 ) {
-    HOME("Home", R.drawable.ic_home),
-    FAVORITES("Favorites", R.drawable.ic_favorite),
-    PROFILE("Profile", R.drawable.ic_account_box),
-}
-
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    BibliotecaTheme {
-        Greeting("Android")
-    }
+    LOGIN("Login", R.drawable.ic_account_box, showInBottomBar = false),
+    REGISTRO("Registro", R.drawable.ic_account_box, showInBottomBar = false),
+    HOME("Libros", R.drawable.ic_home, showInBottomBar = true),
+    FAVORITES("Préstamos", R.drawable.ic_favorite, showInBottomBar = true),
+    PROFILE("Perfil", R.drawable.ic_account_box, showInBottomBar = true),
 }

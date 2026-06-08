@@ -1,4 +1,4 @@
-package com.example.biblioteca.ui.screens
+package com.example.biblioteca.ui.screen
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -25,10 +25,13 @@ fun PerfilScreen() {
         Spacer(modifier = Modifier.height(20.dp))
 
         Card(
+            modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(
                 containerColor = Color(0xFFF5EFE6)
             ),
-            elevation = CardDefaults.cardElevation(6.dp)
+            elevation = CardDefaults.cardElevation(
+                defaultElevation = 6.dp
+            )
         ) {
 
             Column(
@@ -36,15 +39,56 @@ fun PerfilScreen() {
             ) {
 
                 Text(
-                    text = "Usuario Demo",
-                    style = MaterialTheme.typography.titleMedium
+                    text = "Juan Pérez",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = Color(0xFF3E2723)
                 )
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
-                Text("Correo: usuario@biblioteca.com")
-                Text("Membresía: Activa")
-                Text("Libros prestados: 1")
+                Text(
+                    text = "ID Usuario: 1"
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Text(
+                    text = "Correo: juan@correo.com"
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Text(
+                    text = "Rol: Usuario"
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Text(
+                    text = "Verificación: Aprobada",
+                    color = Color(0xFF2E7D32)
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Text(
+                    text = "Documento: identificacion.pdf"
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Text(
+                    text = "Fecha de registro: 10/06/2026"
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Button(
+                    onClick = { },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Editar Perfil")
+                }
             }
         }
     }
