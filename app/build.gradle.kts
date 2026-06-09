@@ -2,6 +2,7 @@ import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     id("org.jetbrains.kotlin.plugin.serialization") version "2.0.21"
 }
@@ -83,10 +84,8 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
 
     // SUPABASE
-
     // BOM de Supabase
     implementation(platform("io.github.jan-tennert.supabase:bom:3.6.0"))
-
     // Modulos de Supabase
     implementation("io.github.jan-tennert.supabase:postgrest-kt")
     implementation("io.github.jan-tennert.supabase:auth-kt")
@@ -97,4 +96,7 @@ dependencies {
 
     // Serialización JSON
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
+
+    // LIBRERÍA DE CÓDIGOS QR
+    implementation("com.google.zxing:core:3.5.3")
 }
