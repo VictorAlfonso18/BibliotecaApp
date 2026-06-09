@@ -12,8 +12,8 @@ import androidx.compose.ui.unit.dp
 
 @Composable
 fun LoginScreen(
-
-    onLoginSuccess: (String, String) -> Unit,
+    onLoginUser: () -> Unit,
+    onLoginAdmin: () -> Unit,
     onNavigateToRegistro: () -> Unit
 ) {
     var correo by remember { mutableStateOf("") }
@@ -78,12 +78,22 @@ fun LoginScreen(
 
                 Spacer(modifier = Modifier.height(20.dp))
 
-                // Botón de ingresar (envía lo que el usuario escribió)
+                // Botón para ingresar como Usuario
                 Button(
-                    onClick = { onLoginSuccess(correo, password) },
+                    onClick = { onLoginUser() },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Ingresar")
+                    Text("Ingresar como Usuario")
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Botón para ingresar como Administrador
+                Button(
+                    onClick = { onLoginAdmin() },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Ingresar como Administrador")
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
