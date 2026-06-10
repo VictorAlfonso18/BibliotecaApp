@@ -2,6 +2,7 @@ package com.example.biblioteca
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Box
@@ -143,8 +144,7 @@ fun MainContentWrapper(
     prestamosViewModel: PrestamosViewModel,
     usuariosViewModel: UsuariosViewModel
 ) {
-    Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-        Box(modifier = Modifier.padding(innerPadding)) {
+    Box(modifier = Modifier.fillMaxSize()) {
             when (currentDestination) {
                 AppDestinations.LOGIN -> {
                     LoginScreen(
@@ -166,6 +166,7 @@ fun MainContentWrapper(
                     )
                 }
                 AppDestinations.REGISTRO -> {
+                    BackHandler { onNavigate(AppDestinations.LOGIN) }
                     RegistroScreen(
                         viewModel = authViewModel,
                         onRegistroSuccess = {
@@ -207,5 +208,4 @@ fun MainContentWrapper(
                 }
             }
         }
-    }
 }

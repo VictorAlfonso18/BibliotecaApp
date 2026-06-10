@@ -29,7 +29,12 @@ class AuthViewModel : ViewModel() {
         viewModelScope.launch {
             _authState.value = AuthState.Loading
             try {
-                authRepository.iniciarSesion(correo, pass)
+                val resultado = authRepository.iniciarSesion(correo, pass)
+
+                if (resultado.isFailure) {
+                    _authState.value = AuthState.Error(resultado.exceptionOrNull()?.message ?: "Error al iniciar sesión")
+                    return@launch
+                }
 
                 val userId = authRepository.getCurrentUserId()
 
@@ -51,13 +56,16 @@ class AuthViewModel : ViewModel() {
     fun registrarse(nombre: String, correo: String, pass: String) {
         viewModelScope.launch {
             _authState.value = AuthState.Loading
+            try {
+                val resultado = authRepository.registrarse(nombre, correo, pass)
 
-            val resultado = authRepository.registrarse(nombre, correo, pass)
-
-            if (resultado.isSuccess) {
-                _authState.value = AuthState.Success("cliente")
-            } else {
-                _authState.value = AuthState.Error(resultado.exceptionOrNull()?.message ?: "Error al registrar")
+                if (resultado.isSuccess) {
+                    _authState.value = AuthState.Success("cliente")
+                } else {
+                    _authState.value = AuthState.Error(resultado.exceptionOrNull()?.message ?: "Error al registrar")
+                }
+            } catch (e: Exception) {
+                _authState.value = AuthState.Error(e.message ?: "Error al registrarse")
             }
         }
     }

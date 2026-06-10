@@ -53,7 +53,10 @@ class PerfilViewModel : ViewModel() {
         viewModelScope.launch {
             _perfilState.value = PerfilState.Loading
 
-            val miId = authRepository.getCurrentUserId() ?: return@launch
+            val miId = authRepository.getCurrentUserId() ?: run {
+                _perfilState.value = PerfilState.Error("No se encontró sesión de usuario.")
+                return@launch
+            }
 
             val exito = usuarioRepository.subirIdentificacion(miId, fotoBytes)
 

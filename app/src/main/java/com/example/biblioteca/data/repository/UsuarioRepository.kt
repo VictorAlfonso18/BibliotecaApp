@@ -29,7 +29,9 @@ class UsuarioRepository {
         return try {
             val nombreArchivo = "$idUsuario.jpg"
 
-            storage.upload(nombreArchivo, dataImagen)
+            storage.upload(nombreArchivo, dataImagen) {
+                upsert = true
+            }
 
             val url = storage.publicUrl(nombreArchivo)
 

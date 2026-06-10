@@ -173,14 +173,11 @@ fun AdminUsuariosScreen(
                                             Text("Ver Identificación")
                                         }
 
-                                        Button(
-                                            onClick = {
-                                                usuario.id?.let { id ->
-                                                    viewModel.aprobarUsuario(id)
-                                                }
-                                            },
-                                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2F4F4F))
-                                        ) {
+                                        Button(onClick = {
+                                            if (usuario.id.isNotBlank()) {
+                                                viewModel.aprobarUsuario(usuario.id)
+                                            }
+                                        }) {
                                             Text("Aprobar")
                                         }
                                     }

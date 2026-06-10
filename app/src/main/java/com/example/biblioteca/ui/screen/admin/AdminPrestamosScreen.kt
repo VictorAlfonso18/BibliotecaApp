@@ -27,10 +27,10 @@ fun AdminPrestamosScreen(viewModel: PrestamosViewModel) {
     val estado by viewModel.prestamosState.collectAsState()
 
     var searchQuery by remember { mutableStateOf("") }
-    var selectedFilter by remember { mutableStateOf("Todos") }
+    var selectedFilter by remember { mutableStateOf("todos") }
 
     LaunchedEffect(Unit) {
-        viewModel.cargarPrestamosPendientes()
+        viewModel.cargarMisPrestamos()
     }
 
     val escanerLauncher = rememberLauncherForActivityResult(ScanContract()) { result ->
@@ -51,7 +51,7 @@ fun AdminPrestamosScreen(viewModel: PrestamosViewModel) {
     val prestamosFiltrados = prestamosReales.filter { prestamo ->
         val coincideBusqueda = prestamo.usuarioId.contains(searchQuery, ignoreCase = true) ||
                 prestamo.libroId.contains(searchQuery, ignoreCase = true)
-        val coincideFiltro = selectedFilter == "Todos" || prestamo.estado.equals(selectedFilter, ignoreCase = true)
+        val coincideFiltro = selectedFilter == "todos" || prestamo.estado.equals(selectedFilter, ignoreCase = true)
         coincideBusqueda && coincideFiltro
     }
 
@@ -112,7 +112,7 @@ fun AdminPrestamosScreen(viewModel: PrestamosViewModel) {
         ) {
             listOf("Todos", "pendiente", "activo").forEach { estadoFiltro ->
                 FilterChip(
-                    selected = selectedFilter.lowercase() == estadoFiltro,
+                    selected = selectedFilter == estadoFiltro.lowercase(),
                     onClick = { selectedFilter = estadoFiltro.lowercase() },
                     label = { Text(estadoFiltro.uppercase()) }
                 )

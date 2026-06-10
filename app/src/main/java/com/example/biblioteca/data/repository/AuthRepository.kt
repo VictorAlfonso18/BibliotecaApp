@@ -32,8 +32,11 @@ class AuthRepository {
                 password = pass
             }
 
-            val userId = getCurrentUserId()
-                ?: throw Exception("Error al obtener ID de usuario")
+            val resultado = auth.signUpWith(Email) {
+                this.email = correo
+                password = pass
+            }
+            val userId = resultado?.id ?: throw Exception("Error al obtener ID")
 
             val newUserProfile = Usuario(id = userId, correo = correo, nombre = nombre)
             db.insert(newUserProfile)

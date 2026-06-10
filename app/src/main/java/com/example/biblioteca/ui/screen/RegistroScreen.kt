@@ -30,6 +30,8 @@ fun RegistroScreen(
         if (authState is AuthState.Success) {
             onRegistroSuccess()
             viewModel.resetState()
+        } else if (authState is AuthState.Error) {
+            errorLocal = null
         }
     }
 

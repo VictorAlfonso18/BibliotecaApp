@@ -31,13 +31,15 @@ fun LibrosScreen(
 
     var mensaje by remember { mutableStateOf("") }
 
+    var solicitudEnviada by remember { mutableStateOf(false) }
+
     LaunchedEffect(estadoPrestamo) {
         if (estadoPrestamo is PrestamosState.Error) {
             mensaje = (estadoPrestamo as PrestamosState.Error).message
-        } else if (estadoPrestamo is PrestamosState.Success) {
-            if (mensaje.contains("Procesando solicitud")) {
-                mensaje = "¡Préstamo solicitado exitosamente!"
-            }
+            solicitudEnviada = false
+        } else if (estadoPrestamo is PrestamosState.Success && solicitudEnviada) {
+            mensaje = "¡Préstamo solicitado exitosamente!"
+            solicitudEnviada = false
         }
     }
 
@@ -86,11 +88,12 @@ fun LibrosScreen(
                     LazyColumn(modifier = Modifier.fillMaxWidth()) {
                         items(librosBD) { libro ->
                             ItemLibro(libro = libro, onAgregarClick = {
-                                libro.id.let { idLibro ->
-                                    prestamosViewModel.solicitarNuevoPrestamo(idLibro)
-                                    mensaje = "Procesando solicitud para '${libro.titulo}'..."
-                                } ?: run {
+                                if (libro.id.isBlank()) {
                                     mensaje = "Error: Libro sin identificador válido."
+                                } else {
+                                    prestamosViewModel.solicitarNuevoPrestamo(libro.id)
+                                    solicitudEnviada = true
+                                    mensaje = "Procesando solicitud para '${libro.titulo}'..."
                                 }
                             })
                         }

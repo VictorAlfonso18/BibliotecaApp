@@ -85,8 +85,8 @@ fun AdminLibrosScreen(viewModel: LibrosViewModel) {
                             showDialog = true
                         },
                         onDelete = {
-                            libro.id?.let { idLibro ->
-                                viewModel.eliminarLibro(idLibro)
+                            if (libro.id.isNotBlank()) {
+                                viewModel.eliminarLibro(libro.id)
                             }
                         }
                     )
@@ -111,7 +111,8 @@ fun AdminLibrosScreen(viewModel: LibrosViewModel) {
                     )
                     viewModel.insertarLibro(nuevoLibro)
                 } else {
-                    libroActual?.id?.let { idLibro ->
+                    val idLibro = libroActual?.id ?: ""
+                    if (idLibro.isNotBlank()) {
                         viewModel.actualizarLibro(
                             idLibro = idLibro,
                             titulo = titulo,
@@ -210,6 +211,7 @@ fun LibroDialog(libro: Libro?, onDismiss: () -> Unit, onSave: (String, String, S
         confirmButton = {
             Button(onClick = {
                 val cantidad = copias.toIntOrNull() ?: 0
+                if (titulo.isBlank() || autor.isBlank()) return@Button
                 onSave(titulo, autor, categoria, descripcion, urlPortada, cantidad)
             }) { Text("Guardar") }
         },

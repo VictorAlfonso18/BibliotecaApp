@@ -45,7 +45,10 @@ class PrestamosViewModel: ViewModel() {
         viewModelScope.launch {
             _prestamosState.value = PrestamosState.Loading
 
-            val miId = authRepository.getCurrentUserId() ?: return@launch
+            val miId = authRepository.getCurrentUserId() ?: run {
+                _prestamosState.value = PrestamosState.Error("No se encontró sesión de usuario.")
+                return@launch
+            }
 
             val perfil = usuarioRepository.obtenerPerfil(miId)
 
@@ -76,12 +79,26 @@ class PrestamosViewModel: ViewModel() {
         viewModelScope.launch {
             _prestamosState.value = PrestamosState.Loading
 
-            val exito = prestamoRepository.actualizarEstadoPrestamo(idPrestamoEscaneado, "activo")
+            val estadoActual = (prestamosState.value as? PrestamosState.Success)
+                ?.prestamos
+                ?.find { it.id == idPrestamoEscaneado }
+                ?.estado
+
+            val nuevoEstado = when (estadoActual) {
+                "pendiente" -> "activo"
+                "activo" -> "devuelto"
+                else -> {
+                    _prestamosState.value = PrestamosState.Error("Estado de préstamo no válido.")
+                    return@launch
+                }
+            }
+
+            val exito = prestamoRepository.actualizarEstadoPrestamo(idPrestamoEscaneado, nuevoEstado)
 
             if (exito) {
                 cargarPrestamosPendientes()
             } else {
-                _prestamosState.value = PrestamosState.Error("Error al activar prestamo.")
+                _prestamosState.value = PrestamosState.Error("Error al procesar el préstamo.")
             }
         }
     }
