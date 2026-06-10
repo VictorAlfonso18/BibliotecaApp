@@ -121,13 +121,13 @@ class LibrosViewModel: ViewModel() {
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val client = HttpClient(CIO)
-                val apiKey = ""
+                val apiKey = "AIzaSyA3fAaRaabzTZqlzDIPBeoYTNPRg7nv7Ns"
                 val url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=$apiKey"
 
                 val body = """
                 {
                   "contents": [{
-                    "parts": [{"text": "Eres un bibliotecario experto. Genera una sinopsis breve (máximo 2 párrafos) para este libro. Solo devuelve la sinopsis, sin saludos.\n\nTítulo: $titulo, Autor: $autor, Categoría: $categoria."}]
+                    "parts": [{"text": "Eres un bibliotecario experto. Genera una sinopsis breve (máximo 1 párrafo) para este libro. Solo devuelve la sinopsis, sin saludos.\n\nTítulo: $titulo, Autor: $autor, Categoría: $categoria."}]
                   }]
                 }
             """.trimIndent()

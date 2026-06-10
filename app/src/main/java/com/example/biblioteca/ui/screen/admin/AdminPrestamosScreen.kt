@@ -12,26 +12,49 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.biblioteca.ui.viewmodels.PrestamosState
 import com.example.biblioteca.ui.viewmodels.PrestamosViewModel
+import com.example.biblioteca.ui.viewmodels.LibrosViewModel
+import com.example.biblioteca.ui.viewmodels.LibrosState
+import com.example.biblioteca.ui.viewmodels.UsuariosViewModel
+import com.example.biblioteca.ui.viewmodels.UsuariosState
 import com.journeyapps.barcodescanner.ScanContract
 import com.journeyapps.barcodescanner.ScanOptions
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AdminPrestamosScreen(viewModel: PrestamosViewModel) {
+fun AdminPrestamosScreen(
+    viewModel: PrestamosViewModel,
+    librosViewModel: LibrosViewModel,
+    usuariosViewModel: UsuariosViewModel
+) {
     val context = LocalContext.current
 
     val estado by viewModel.prestamosState.collectAsState()
+    val estadoLibros by librosViewModel.librosState.collectAsState()
+    val estadoUsuarios by usuariosViewModel.usuariosState.collectAsState()
 
     var searchQuery by remember { mutableStateOf("") }
     var selectedFilter by remember { mutableStateOf("todos") }
 
     LaunchedEffect(Unit) {
         viewModel.cargarTodosLosPrestamos()
+        if (estadoLibros !is LibrosState.Success) librosViewModel.cargarCatalogo()
+        if (estadoUsuarios !is UsuariosState.Success) usuariosViewModel.cargarUsuarios()
     }
+
+    val catalogoLibros = if (estadoLibros is LibrosState.Success) {
+        (estadoLibros as LibrosState.Success).libros
+    } else emptyList()
+
+    val catalogoUsuarios = if (estadoUsuarios is UsuariosState.Success) {
+        (estadoUsuarios as UsuariosState.Success).usuarios
+    } else emptyList()
 
     val escanerLauncher = rememberLauncherForActivityResult(ScanContract()) { result ->
         if (result.contents != null) {
@@ -49,8 +72,16 @@ fun AdminPrestamosScreen(viewModel: PrestamosViewModel) {
     }
 
     val prestamosFiltrados = prestamosReales.filter { prestamo ->
-        val coincideBusqueda = prestamo.usuarioId.contains(searchQuery, ignoreCase = true) ||
-                prestamo.libroId?.contains(searchQuery, ignoreCase = true) == true
+        val libro = catalogoLibros.find { it.id == prestamo.libroId }
+        val usuario = catalogoUsuarios.find { it.id == prestamo.usuarioId }
+
+        val tituloLibro = libro?.titulo ?: ""
+        val nombreUsuario = usuario?.nombre ?: ""
+
+        val coincideBusqueda = nombreUsuario.contains(searchQuery, ignoreCase = true) ||
+                tituloLibro.contains(searchQuery, ignoreCase = true) ||
+                (prestamo.id ?: "").contains(searchQuery, ignoreCase = true)
+
         val coincideFiltro = selectedFilter == "todos" || prestamo.estado.equals(selectedFilter, ignoreCase = true)
         coincideBusqueda && coincideFiltro
     }
@@ -61,9 +92,12 @@ fun AdminPrestamosScreen(viewModel: PrestamosViewModel) {
         uri?.let {
             try {
                 context.contentResolver.openOutputStream(it)?.use { outputStream ->
-                    val csvHeader = "ID Prestamo,ID Usuario,ID Libro,Fecha,Estado\n"
+                    val csvHeader = "ID Prestamo,Usuario,Libro,Fecha Solicitud,Estado\n"
                     val csvRows = prestamosFiltrados.joinToString("\n") { p ->
-                        "${p.id},${p.usuarioId},${p.libroId},${p.fechaSolicitud},${p.estado}"
+                        val libro = catalogoLibros.find { l -> l.id == p.libroId }?.titulo ?: "Desconocido"
+                        val usuario = catalogoUsuarios.find { u -> u.id == p.usuarioId }?.nombre ?: "Desconocido"
+                        val fecha = p.fechaSolicitud?.let { f -> formatearFechaAdmin(f) } ?: "Sin fecha"
+                        "${p.id},$usuario,$libro,$fecha,${p.estado}"
                     }
                     outputStream.write((csvHeader + csvRows).toByteArray())
                 }
@@ -99,7 +133,7 @@ fun AdminPrestamosScreen(viewModel: PrestamosViewModel) {
         OutlinedTextField(
             value = searchQuery,
             onValueChange = { searchQuery = it },
-            label = { Text("Buscar por ID de usuario o libro...") },
+            label = { Text("Buscar por cliente, libro o folio...") }, // Guía actualizada
             modifier = Modifier.fillMaxWidth(),
             singleLine = true
         )
@@ -110,7 +144,7 @@ fun AdminPrestamosScreen(viewModel: PrestamosViewModel) {
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            listOf("Todos", "pendiente", "activo").forEach { estadoFiltro ->
+            listOf("Todos", "pendiente", "activo",  "devuelto").forEach { estadoFiltro ->
                 FilterChip(
                     selected = selectedFilter == estadoFiltro.lowercase(),
                     onClick = { selectedFilter = estadoFiltro.lowercase() },
@@ -142,24 +176,60 @@ fun AdminPrestamosScreen(viewModel: PrestamosViewModel) {
 
         LazyColumn {
             items(prestamosFiltrados) { prestamo ->
+                val libroAsociado = catalogoLibros.find { it.id == prestamo.libroId }
+                val usuarioAsociado = catalogoUsuarios.find { it.id == prestamo.usuarioId }
+
+                val tituloLibro = libroAsociado?.titulo ?: "Libro Desconocido"
+                val nombreUsuario = usuarioAsociado?.nombre ?: "Usuario Desconocido"
+
                 Card(
                     modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
                     colors = CardDefaults.cardColors(containerColor = Color(0xFFF5EFE6))
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text("Préstamo #${prestamo.id?.take(8)}", style = MaterialTheme.typography.titleMedium)
-                        Text("Usuario ID: ${prestamo.usuarioId}")
-                        Text("Libro ID: ${prestamo.libroId}")
+                        Text(
+                            text = "Folio #${if (!prestamo.id.isNullOrBlank()) prestamo.id.take(8) else "Desconocido"}",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = Color.Gray
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        Text("Cliente: $nombreUsuario", style = MaterialTheme.typography.titleMedium, color = Color(0xFF3E2723), fontWeight = FontWeight.Bold)
+                        Text("Libro: $tituloLibro", style = MaterialTheme.typography.bodyLarge)
+
+                        Spacer(modifier = Modifier.height(6.dp))
+
+                        // Mostramos fechas con formato legible
+                        prestamo.fechaSolicitud?.let { Text("Solicitado: ${formatearFechaAdmin(it)}", style = MaterialTheme.typography.bodyMedium) }
+                        prestamo.fechaPrestamo?.let { Text("Entregado: ${formatearFechaAdmin(it)}", style = MaterialTheme.typography.bodyMedium) }
+                        prestamo.fechaDevolucion?.let { Text("Devuelto: ${formatearFechaAdmin(it)}", style = MaterialTheme.typography.bodyMedium) }
+
+                        Spacer(modifier = Modifier.height(6.dp))
+
                         Text("Estado: ${prestamo.estado.uppercase()}",
                             color = when(prestamo.estado.lowercase()) {
                                 "activo" -> Color(0xFF388E3C)
                                 "pendiente" -> Color(0xFFE65100)
                                 else -> Color.Gray
-                            }
+                            },
+                            fontWeight = FontWeight.SemiBold
                         )
                     }
                 }
             }
         }
+    }
+}
+
+// Función auxiliar para transformar el formato ISO de Supabase a un formato legible en la lista
+fun formatearFechaAdmin(fechaIso: String): String {
+    return try {
+        val fechaLimpia = fechaIso.substringBefore(".")
+        val parser = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault())
+        val formatter = SimpleDateFormat("dd/MM/yyyy hh:mm a", Locale.getDefault())
+        val parsedDate = parser.parse(fechaLimpia)
+        if (parsedDate != null) formatter.format(parsedDate) else fechaIso
+    } catch (e: Exception) {
+        fechaIso
     }
 }

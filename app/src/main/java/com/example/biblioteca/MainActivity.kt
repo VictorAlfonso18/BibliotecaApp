@@ -184,7 +184,10 @@ fun MainContentWrapper(
                     )
                 }
                 AppDestinations.FAVORITES -> {
-                    PrestamosScreen(viewModel = prestamosViewModel)
+                    PrestamosScreen(
+                        viewModel = prestamosViewModel,
+                        librosViewModel = librosViewModel
+                    )
                 }
                 AppDestinations.PROFILE -> {
                     PerfilScreen(
@@ -201,7 +204,11 @@ fun MainContentWrapper(
                     AdminLibrosScreen(viewModel = librosViewModel)
                 }
                 AppDestinations.ADMIN_PRESTAMOS -> {
-                    AdminPrestamosScreen(viewModel = prestamosViewModel)
+                    AdminPrestamosScreen(
+                        viewModel = prestamosViewModel,
+                        librosViewModel = librosViewModel,
+                        usuariosViewModel = usuariosViewModel
+                    )
                 }
                 AppDestinations.ADMIN_USUARIOS -> {
                     AdminUsuariosScreen(viewModel = usuariosViewModel)

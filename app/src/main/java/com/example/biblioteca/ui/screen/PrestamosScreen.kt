@@ -11,26 +11,43 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import com.example.biblioteca.data.model.Libro
 import com.example.biblioteca.data.model.Prestamo
 import com.example.biblioteca.ui.viewmodels.PrestamosViewModel
 import com.example.biblioteca.ui.viewmodels.PrestamosState
+import com.example.biblioteca.ui.viewmodels.LibrosViewModel
+import com.example.biblioteca.ui.viewmodels.LibrosState
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.qrcode.QRCodeWriter
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 @Composable
 fun PrestamosScreen(
-    viewModel: PrestamosViewModel
+    viewModel: PrestamosViewModel,
+    librosViewModel: LibrosViewModel
 ) {
     val estado by viewModel.prestamosState.collectAsState()
-    var mensaje by remember { mutableStateOf("") }
+    val estadoLibros by librosViewModel.librosState.collectAsState()
 
+    var mensaje by remember { mutableStateOf("") }
     var qrSeleccionado by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(Unit) {
         viewModel.cargarMisPrestamos()
+        if (estadoLibros !is LibrosState.Success) {
+            librosViewModel.cargarCatalogo()
+        }
+    }
+
+    val catalogo = if (estadoLibros is LibrosState.Success) {
+        (estadoLibros as LibrosState.Success).libros
+    } else {
+        emptyList()
     }
 
     qrSeleccionado?.let { idPrestamo ->
@@ -131,7 +148,7 @@ fun PrestamosScreen(
                 } else {
                     LazyColumn(modifier = Modifier.fillMaxWidth()) {
                         items(misPrestamos) { prestamo ->
-                            ItemPrestamo(prestamo = prestamo) { idPrestamo ->
+                            ItemPrestamo(prestamo = prestamo, catalogo = catalogo) { idPrestamo ->
                                 qrSeleccionado = idPrestamo
                             }
                         }
@@ -143,7 +160,10 @@ fun PrestamosScreen(
 }
 
 @Composable
-fun ItemPrestamo(prestamo: Prestamo, onVerQRClick: (String) -> Unit) {
+fun ItemPrestamo(prestamo: Prestamo, catalogo: List<Libro>, onVerQRClick: (String) -> Unit) {
+    val libroAsociado = catalogo.find { it.id == prestamo.libroId }
+    val tituloLibro = libroAsociado?.titulo ?: "Libro Desconocido"
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -154,22 +174,37 @@ fun ItemPrestamo(prestamo: Prestamo, onVerQRClick: (String) -> Unit) {
         Column(modifier = Modifier.padding(16.dp)) {
 
             Text(
-                text = "Préstamo #${if (!prestamo.id.isNullOrBlank()) prestamo.id.take(8) else "Desconocido"}",
-                style = MaterialTheme.typography.titleMedium,
-                color = Color(0xFF3E2723)
+                text = "Folio #${if (!prestamo.id.isNullOrBlank()) prestamo.id.take(8) else "Desconocido"}",
+                style = MaterialTheme.typography.labelMedium,
+                color = Color.Gray
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Text(
+                text = tituloLibro,
+                style = MaterialTheme.typography.titleLarge,
+                color = Color(0xFF3E2723),
+                fontWeight = FontWeight.Bold
             )
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            Text("ID Libro: ${prestamo.libroId}")
-
-            prestamo.fechaSolicitud?.let { Text("Solicitado el: $it") }
+            prestamo.fechaSolicitud?.let {
+                Text("Solicitado el: ${formatearFecha(it)}")
+            }
+            prestamo.fechaPrestamo?.let {
+                Text("Entregado el: ${formatearFecha(it)}")
+            }
+            prestamo.fechaDevolucion?.let {
+                Text("Devuelto el: ${formatearFecha(it)}")
+            }
 
             Spacer(modifier = Modifier.height(8.dp))
 
             val colorEstado = when (prestamo.estado.lowercase()) {
-                "activo" -> Color(0xFF2E7D32) // Verde
-                "pendiente" -> Color(0xFFE65100) // Naranja
+                "activo" -> Color(0xFF2E7D32)
+                "pendiente" -> Color(0xFFE65100)
                 "devuelto" -> Color.Gray
                 else -> Color.Black
             }
@@ -177,7 +212,8 @@ fun ItemPrestamo(prestamo: Prestamo, onVerQRClick: (String) -> Unit) {
             Text(
                 text = "Estado: ${prestamo.estado.uppercase()}",
                 color = colorEstado,
-                style = MaterialTheme.typography.bodyLarge
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.SemiBold
             )
 
             if (prestamo.estado.lowercase() in listOf("activo", "pendiente")) {
@@ -210,5 +246,18 @@ fun generarQR(contenido: String): Bitmap? {
     } catch (e: Exception) {
         e.printStackTrace()
         null
+    }
+}
+
+fun formatearFecha(fechaIso: String): String {
+    return try {
+        val fechaLimpia = fechaIso.substringBefore(".")
+        val parser = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault())
+        val formatter = SimpleDateFormat("dd/MM/yyyy hh:mm a", Locale.getDefault())
+
+        val parsedDate = parser.parse(fechaLimpia)
+        if (parsedDate != null) formatter.format(parsedDate) else fechaIso
+    } catch (e: Exception) {
+        fechaIso
     }
 }
