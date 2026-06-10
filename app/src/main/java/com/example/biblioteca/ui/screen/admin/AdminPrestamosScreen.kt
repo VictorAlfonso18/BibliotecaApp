@@ -30,7 +30,7 @@ fun AdminPrestamosScreen(viewModel: PrestamosViewModel) {
     var selectedFilter by remember { mutableStateOf("todos") }
 
     LaunchedEffect(Unit) {
-        viewModel.cargarMisPrestamos()
+        viewModel.cargarTodosLosPrestamos()
     }
 
     val escanerLauncher = rememberLauncherForActivityResult(ScanContract()) { result ->
@@ -135,6 +135,9 @@ fun AdminPrestamosScreen(viewModel: PrestamosViewModel) {
             Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
             }
+        } else if (estado is PrestamosState.Error) {
+            val errorMsg = (estado as PrestamosState.Error).message
+            Text(text = "Error: $errorMsg", color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(bottom = 8.dp))
         }
 
         LazyColumn {

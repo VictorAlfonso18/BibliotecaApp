@@ -106,4 +106,7 @@ dependencies {
 
     // Librería Coil para cargar imágenes por URL
     implementation("io.coil-kt:coil-compose:2.6.0")
+
+    // SDK de Gemini para Android
+    implementation("com.google.ai.client.generativeai:generativeai:0.7.0")
 }

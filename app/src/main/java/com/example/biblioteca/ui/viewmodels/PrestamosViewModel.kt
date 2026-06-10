@@ -75,20 +75,27 @@ class PrestamosViewModel: ViewModel() {
         }
     }
 
-    fun procesarCodigoQR(idPrestamoEscaneado: String) {
+    fun cargarTodosLosPrestamos() {
         viewModelScope.launch {
             _prestamosState.value = PrestamosState.Loading
+            _prestamosState.value = PrestamosState.Success(prestamoRepository.obtenerTodosLosPrestamos())
+        }
+    }
 
+    fun procesarCodigoQR(idPrestamoEscaneado: String) {
+        viewModelScope.launch {
             val estadoActual = (prestamosState.value as? PrestamosState.Success)
                 ?.prestamos
                 ?.find { it.id == idPrestamoEscaneado }
                 ?.estado
 
+            _prestamosState.value = PrestamosState.Loading
+
             val nuevoEstado = when (estadoActual) {
                 "pendiente" -> "activo"
                 "activo" -> "devuelto"
                 else -> {
-                    _prestamosState.value = PrestamosState.Error("Estado de préstamo no válido.")
+                    _prestamosState.value = PrestamosState.Error("Préstamo no encontrado o estado no válido.")
                     return@launch
                 }
             }
@@ -96,9 +103,9 @@ class PrestamosViewModel: ViewModel() {
             val exito = prestamoRepository.actualizarEstadoPrestamo(idPrestamoEscaneado, nuevoEstado)
 
             if (exito) {
-                cargarPrestamosPendientes()
+                cargarTodosLosPrestamos()
             } else {
-                _prestamosState.value = PrestamosState.Error("Error al procesar el préstamo.")
+                _prestamosState.value = PrestamosState.Error("Error al actualizar el préstamo en la base de datos.")
             }
         }
     }

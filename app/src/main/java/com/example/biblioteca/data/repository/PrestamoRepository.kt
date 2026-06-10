@@ -82,4 +82,13 @@ class PrestamoRepository {
             false
         }
     }
+
+    suspend fun obtenerTodosLosPrestamos(): List<Prestamo> {
+        return try {
+            db.select().decodeList<Prestamo>()
+        } catch (e: Exception) {
+            Log.e("PrestamoRepo", "Error al obtener todos los préstamos: ${e.message}")
+            emptyList()
+        }
+    }
 }

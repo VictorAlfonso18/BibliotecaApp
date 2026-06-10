@@ -97,6 +97,7 @@ fun AdminLibrosScreen(viewModel: LibrosViewModel) {
 
     if (showDialog) {
         LibroDialog(
+            viewModel = viewModel,
             libro = libroActual,
             onDismiss = { showDialog = false },
             onSave = { titulo, autor, categoria, descripcion, urlPortada, copias ->
@@ -177,13 +178,21 @@ fun LibroAdminItem(libro: Libro, onEdit: () -> Unit, onDelete: () -> Unit) {
 }
 
 @Composable
-fun LibroDialog(libro: Libro?, onDismiss: () -> Unit, onSave: (String, String, String, String, String, Int) -> Unit) {
+fun LibroDialog(
+    viewModel: LibrosViewModel,
+    libro: Libro?,
+    onDismiss: () -> Unit,
+    onSave: (String, String, String, String, String, Int) -> Unit
+) {
     var titulo by remember { mutableStateOf(libro?.titulo ?: "") }
     var autor by remember { mutableStateOf(libro?.autor ?: "") }
-    var categoria by remember { mutableStateOf(libro?.categoria ?: "") } // NUEVO
+    var categoria by remember { mutableStateOf(libro?.categoria ?: "") }
     var descripcion by remember { mutableStateOf(libro?.descripcion ?: "") }
-    var urlPortada by remember { mutableStateOf(libro?.urlPortada ?: "") } // NUEVO
+    var urlPortada by remember { mutableStateOf(libro?.urlPortada ?: "") }
     var copias by remember { mutableStateOf(libro?.disponible?.toString() ?: "1") }
+
+    var generandoIA by remember { mutableStateOf(false) }
+    var errorIA by remember { mutableStateOf("") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -192,14 +201,67 @@ fun LibroDialog(libro: Libro?, onDismiss: () -> Unit, onSave: (String, String, S
             Column {
                 OutlinedTextField(value = titulo, onValueChange = { titulo = it }, label = { Text("Título") }, modifier = Modifier.fillMaxWidth())
                 Spacer(modifier = Modifier.height(8.dp))
+
                 OutlinedTextField(value = autor, onValueChange = { autor = it }, label = { Text("Autor") }, modifier = Modifier.fillMaxWidth())
                 Spacer(modifier = Modifier.height(8.dp))
+
                 OutlinedTextField(value = categoria, onValueChange = { categoria = it }, label = { Text("Categoría") }, modifier = Modifier.fillMaxWidth())
-                Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(value = descripcion, onValueChange = { descripcion = it }, label = { Text("Descripción") }, modifier = Modifier.fillMaxWidth())
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Descripción", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+
+                    if (titulo.isNotBlank() && autor.isNotBlank()) {
+                        TextButton(
+                            onClick = {
+                                generandoIA = true
+                                errorIA = ""
+                                viewModel.generarDescripcionConIA(
+                                    titulo = titulo,
+                                    autor = autor,
+                                    categoria = categoria,
+                                    onResult = { sinopsis ->
+                                        descripcion = sinopsis
+                                        generandoIA = false
+                                    },
+                                    onError = { error ->
+                                        errorIA = error
+                                        generandoIA = false
+                                    }
+                                )
+                            },
+                            enabled = !generandoIA // Desactivamos el botón mientras piensa
+                        ) {
+                            if (generandoIA) {
+                                CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Generando...")
+                            } else {
+                                Text("✨ Autocompletar con IA")
+                            }
+                        }
+                    }
+                }
+
+                OutlinedTextField(
+                    value = descripcion,
+                    onValueChange = { descripcion = it },
+                    modifier = Modifier.fillMaxWidth().height(120.dp), // Lo hacemos un poco más alto
+                    maxLines = 5
+                )
+
+                if (errorIA.isNotEmpty()) {
+                    Text(text = errorIA, color = Color.Red, fontSize = 12.sp)
+                }
+
                 Spacer(modifier = Modifier.height(8.dp))
                 OutlinedTextField(value = urlPortada, onValueChange = { urlPortada = it }, label = { Text("URL de la Portada") }, modifier = Modifier.fillMaxWidth())
                 Spacer(modifier = Modifier.height(8.dp))
+
                 OutlinedTextField(
                     value = copias,
                     onValueChange = { copias = it },
