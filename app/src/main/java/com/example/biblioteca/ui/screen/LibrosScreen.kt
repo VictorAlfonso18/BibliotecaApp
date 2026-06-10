@@ -14,15 +14,32 @@ import androidx.compose.ui.unit.dp
 import com.example.biblioteca.data.model.Libro
 import com.example.biblioteca.ui.viewmodels.LibrosViewModel
 import com.example.biblioteca.ui.viewmodels.LibrosState
+import com.example.biblioteca.ui.viewmodels.PrestamosViewModel
+import com.example.biblioteca.ui.viewmodels.PrestamosState
+import coil.compose.AsyncImage
+import androidx.compose.ui.layout.ContentScale
 
 @Composable
 fun LibrosScreen(
-    viewModel: LibrosViewModel
+    viewModel: LibrosViewModel,
+    prestamosViewModel: PrestamosViewModel
 ) {
 
     val estado by viewModel.librosState.collectAsState()
 
+    val estadoPrestamo by prestamosViewModel.prestamosState.collectAsState()
+
     var mensaje by remember { mutableStateOf("") }
+
+    LaunchedEffect(estadoPrestamo) {
+        if (estadoPrestamo is PrestamosState.Error) {
+            mensaje = (estadoPrestamo as PrestamosState.Error).message
+        } else if (estadoPrestamo is PrestamosState.Success) {
+            if (mensaje.contains("Procesando solicitud")) {
+                mensaje = "¡Préstamo solicitado exitosamente!"
+            }
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -39,7 +56,10 @@ fun LibrosScreen(
 
         if (mensaje.isNotEmpty()) {
             Spacer(modifier = Modifier.height(8.dp))
-            Text(text = mensaje, color = Color(0xFF2E7D32))
+
+            val colorMensaje = if (mensaje.contains("Error") || mensaje.contains("Debes")) Color.Red else Color(0xFF2E7D32)
+
+            Text(text = mensaje, color = colorMensaje)
         }
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -66,8 +86,12 @@ fun LibrosScreen(
                     LazyColumn(modifier = Modifier.fillMaxWidth()) {
                         items(librosBD) { libro ->
                             ItemLibro(libro = libro, onAgregarClick = {
-                                // TODO: Más adelante conectaremos esto al PrestamosViewModel
-                                mensaje = "Solicitud para '${libro.titulo}' enviada"
+                                libro.id.let { idLibro ->
+                                    prestamosViewModel.solicitarNuevoPrestamo(idLibro)
+                                    mensaje = "Procesando solicitud para '${libro.titulo}'..."
+                                } ?: run {
+                                    mensaje = "Error: Libro sin identificador válido."
+                                }
                             })
                         }
                     }
@@ -99,7 +123,16 @@ fun ItemLibro(libro: Libro, onAgregarClick: () -> Unit) {
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(text = "PORTADA", color = Color.White, style = MaterialTheme.typography.bodySmall)
+                    if (!libro.urlPortada.isNullOrEmpty()) {
+                        AsyncImage(
+                            model = libro.urlPortada,
+                            contentDescription = "Portada de ${libro.titulo}",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        Text(text = "PORTADA", color = Color.White, style = MaterialTheme.typography.bodySmall)
+                    }
                 }
             }
 

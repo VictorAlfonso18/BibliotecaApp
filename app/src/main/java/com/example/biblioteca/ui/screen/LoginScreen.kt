@@ -15,18 +15,18 @@ import com.example.biblioteca.ui.viewmodels.AuthState
 @Composable
 fun LoginScreen(
     viewModel: AuthViewModel,
-    onLoginSuccess: () -> Unit,
+    onLoginSuccess: (String) -> Unit,
     onNavigateToRegistro: () -> Unit
 ) {
 
     val authState by viewModel.authState.collectAsState()
-
     var correo by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
 
     LaunchedEffect(authState) {
         if (authState is AuthState.Success) {
-            onLoginSuccess()
+            val rol = (authState as AuthState.Success).rol
+            onLoginSuccess(rol)
             viewModel.resetState()
         }
     }

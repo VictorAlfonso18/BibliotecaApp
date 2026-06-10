@@ -38,6 +38,7 @@ import com.example.biblioteca.ui.viewmodels.AuthViewModel
 import com.example.biblioteca.ui.viewmodels.LibrosViewModel
 import com.example.biblioteca.ui.viewmodels.PerfilViewModel
 import com.example.biblioteca.ui.viewmodels.PrestamosViewModel
+import com.example.biblioteca.ui.viewmodels.UsuariosViewModel
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -84,6 +85,7 @@ fun BibliotecaApp() {
     val librosViewModel: LibrosViewModel = viewModel()
     val perfilViewModel: PerfilViewModel = viewModel()
     val prestamosViewModel: PrestamosViewModel = viewModel()
+    val usuariosViewModel: UsuariosViewModel = viewModel()
 
     var currentDestination by rememberSaveable { mutableStateOf(AppDestinations.LOGIN) }
     var currentUserRole by rememberSaveable { mutableStateOf(UserRole.NONE) }
@@ -112,7 +114,8 @@ fun BibliotecaApp() {
                 authViewModel = authViewModel,
                 librosViewModel = librosViewModel,
                 perfilViewModel = perfilViewModel,
-                prestamosViewModel = prestamosViewModel
+                prestamosViewModel = prestamosViewModel,
+                usuariosViewModel = usuariosViewModel
             )
         }
     } else {
@@ -123,7 +126,8 @@ fun BibliotecaApp() {
             authViewModel = authViewModel,
             librosViewModel = librosViewModel,
             perfilViewModel = perfilViewModel,
-            prestamosViewModel = prestamosViewModel
+            prestamosViewModel = prestamosViewModel,
+            usuariosViewModel = usuariosViewModel
         )
     }
 }
@@ -136,7 +140,8 @@ fun MainContentWrapper(
     authViewModel: AuthViewModel,
     librosViewModel: LibrosViewModel,
     perfilViewModel: PerfilViewModel,
-    prestamosViewModel: PrestamosViewModel
+    prestamosViewModel: PrestamosViewModel,
+    usuariosViewModel: UsuariosViewModel
 ) {
     Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
         Box(modifier = Modifier.padding(innerPadding)) {
@@ -144,10 +149,16 @@ fun MainContentWrapper(
                 AppDestinations.LOGIN -> {
                     LoginScreen(
                         viewModel = authViewModel,
-                        onLoginSuccess = {
-                            // TODO: Más adelante, aquí consultaremos la BD para saber si es ADMIN o USER.
-                            onRoleChange(UserRole.USER)
-                            onNavigate(AppDestinations.HOME)
+                        onLoginSuccess = { rolDelUsuario ->
+
+                            if (rolDelUsuario.lowercase() == "admin") {
+                                onRoleChange(UserRole.ADMIN)
+                                onNavigate(AppDestinations.ADMIN_HOME)
+                            } else {
+                                onRoleChange(UserRole.USER)
+                                onNavigate(AppDestinations.HOME)
+                            }
+
                         },
                         onNavigateToRegistro = {
                             onNavigate(AppDestinations.REGISTRO)
@@ -166,7 +177,10 @@ fun MainContentWrapper(
 
                 // RUTAS DE CLIENTE
                 AppDestinations.HOME -> {
-                    LibrosScreen(viewModel = librosViewModel)
+                    LibrosScreen(
+                        viewModel = librosViewModel,
+                        prestamosViewModel = prestamosViewModel
+                    )
                 }
                 AppDestinations.FAVORITES -> {
                     PrestamosScreen(viewModel = prestamosViewModel)
@@ -182,9 +196,15 @@ fun MainContentWrapper(
                 }
 
                 // RUTAS DE ADMINISTRADOR
-                AppDestinations.ADMIN_HOME -> { AdminLibrosScreen() }
-                AppDestinations.ADMIN_PRESTAMOS -> { AdminPrestamosScreen() }
-                AppDestinations.ADMIN_USUARIOS -> { AdminUsuariosScreen() }
+                AppDestinations.ADMIN_HOME -> {
+                    AdminLibrosScreen(viewModel = librosViewModel)
+                }
+                AppDestinations.ADMIN_PRESTAMOS -> {
+                    AdminPrestamosScreen(viewModel = prestamosViewModel)
+                }
+                AppDestinations.ADMIN_USUARIOS -> {
+                    AdminUsuariosScreen(viewModel = usuariosViewModel)
+                }
             }
         }
     }

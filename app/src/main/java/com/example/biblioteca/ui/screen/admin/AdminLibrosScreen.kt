@@ -14,24 +14,33 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-
-// Agregamos el parámetro "portada" al modelo de datos
-data class LibroAdmin(val id: Int, var titulo: String, var autor: String, var disponible: Boolean, var portada: String)
+import com.example.biblioteca.data.model.Libro
+import com.example.biblioteca.ui.viewmodels.LibrosViewModel
+import com.example.biblioteca.ui.viewmodels.LibrosState
+import coil.compose.AsyncImage
+import androidx.compose.ui.layout.ContentScale
 
 @Composable
-fun AdminLibrosScreen() {
-    var libros by remember { mutableStateOf(listOf(
-        LibroAdmin(1, "Don Quijote", "Miguel de Cervantes", true, "Don Quijote"),
-        LibroAdmin(2, "El Principito", "Antoine de Saint-Exupéry", false, "Principito")
-    )) }
+fun AdminLibrosScreen(viewModel: LibrosViewModel) {
+    val estado by viewModel.librosState.collectAsState()
 
     var searchQuery by remember { mutableStateOf("") }
     var showDialog by remember { mutableStateOf(false) }
-    var libroActual by remember { mutableStateOf<LibroAdmin?>(null) }
+    var libroActual by remember { mutableStateOf<Libro?>(null) }
 
-    // Filtro en tiempo real por título o autor (Punto 3)
-    val librosFiltrados = libros.filter {
-        it.titulo.contains(searchQuery, ignoreCase = true) || it.autor.contains(searchQuery, ignoreCase = true)
+    LaunchedEffect(Unit) {
+        viewModel.cargarCatalogo()
+    }
+
+    val librosReales = if (estado is LibrosState.Success) {
+        (estado as LibrosState.Success).libros
+    } else {
+        emptyList()
+    }
+
+    val librosFiltrados = librosReales.filter {
+        it.titulo.contains(searchQuery, ignoreCase = true) ||
+                it.autor.contains(searchQuery, ignoreCase = true)
     }
 
     Scaffold(
@@ -51,7 +60,6 @@ fun AdminLibrosScreen() {
             Text("Gestión de Libros", fontSize = 24.sp, color = Color(0xFF2F4F4F))
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Barra de búsqueda (Punto 3)
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
@@ -62,6 +70,12 @@ fun AdminLibrosScreen() {
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            if (estado is LibrosState.Loading) {
+                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+            }
+
             LazyColumn {
                 items(librosFiltrados) { libro ->
                     LibroAdminItem(
@@ -71,7 +85,9 @@ fun AdminLibrosScreen() {
                             showDialog = true
                         },
                         onDelete = {
-                            libros = libros.filter { it.id != libro.id }
+                            libro.id?.let { idLibro ->
+                                viewModel.eliminarLibro(idLibro)
+                            }
                         }
                     )
                 }
@@ -83,13 +99,28 @@ fun AdminLibrosScreen() {
         LibroDialog(
             libro = libroActual,
             onDismiss = { showDialog = false },
-            onSave = { titulo, autor, disponible, portada ->
+            onSave = { titulo, autor, categoria, descripcion, urlPortada, copias ->
                 if (libroActual == null) {
-                    val nuevoId = (libros.maxOfOrNull { it.id } ?: 0) + 1
-                    libros = libros + LibroAdmin(nuevoId, titulo, autor, disponible, portada)
+                    val nuevoLibro = Libro(
+                        titulo = titulo,
+                        autor = autor,
+                        categoria = categoria,
+                        descripcion = descripcion,
+                        urlPortada = urlPortada,
+                        disponible = copias
+                    )
+                    viewModel.insertarLibro(nuevoLibro)
                 } else {
-                    libros = libros.map {
-                        if (it.id == libroActual!!.id) it.copy(titulo = titulo, autor = autor, disponible = disponible, portada = portada) else it
+                    libroActual?.id?.let { idLibro ->
+                        viewModel.actualizarLibro(
+                            idLibro = idLibro,
+                            titulo = titulo,
+                            autor = autor,
+                            categoria = categoria,
+                            descripcion = descripcion,
+                            urlPortada = urlPortada,
+                            disponible = copias
+                        )
                     }
                 }
                 showDialog = false
@@ -99,26 +130,39 @@ fun AdminLibrosScreen() {
 }
 
 @Composable
-fun LibroAdminItem(libro: LibroAdmin, onEdit: () -> Unit, onDelete: () -> Unit) {
+fun LibroAdminItem(libro: Libro, onEdit: () -> Unit, onDelete: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
         colors = CardDefaults.cardColors(containerColor = Color(0xFFF5EFE6))
     ) {
         Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier = Modifier.size(80.dp).background(Color(0xFF759F84), RoundedCornerShape(8.dp)),
-                contentAlignment = Alignment.Center
+            Card(
+                modifier = Modifier.size(width = 80.dp, height = 110.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF6D9886))
             ) {
-                // Muestra el nombre personalizado de la portada editada
-                Text(libro.portada, color = Color.White, fontSize = 11.sp, modifier = Modifier.padding(4.dp))
+                if (!libro.urlPortada.isNullOrEmpty()) {
+                    AsyncImage(
+                        model = libro.urlPortada,
+                        contentDescription = "Portada",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text("PORTADA", color = Color.White, fontSize = 11.sp)
+                    }
+                }
             }
             Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(libro.titulo, style = MaterialTheme.typography.titleMedium, color = Color(0xFF3E2723))
                 Text("Autor: ${libro.autor}", style = MaterialTheme.typography.bodyMedium)
+                Text("Categoría: ${libro.categoria}", style = MaterialTheme.typography.bodyMedium)
+
+                val hayCopias = libro.disponible > 0
                 Text(
-                    text = "Estado: ${if (libro.disponible) "Disponible" else "No disponible"}",
-                    color = if (libro.disponible) Color(0xFF388E3C) else Color.Red,
+                    text = "Estado: ${if (hayCopias) "${libro.disponible} copias" else "Agotado"}",
+                    color = if (hayCopias) Color(0xFF388E3C) else Color.Red,
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Row(modifier = Modifier.padding(top = 8.dp)) {
@@ -132,11 +176,13 @@ fun LibroAdminItem(libro: LibroAdmin, onEdit: () -> Unit, onDelete: () -> Unit) 
 }
 
 @Composable
-fun LibroDialog(libro: LibroAdmin?, onDismiss: () -> Unit, onSave: (String, String, Boolean, String) -> Unit) {
+fun LibroDialog(libro: Libro?, onDismiss: () -> Unit, onSave: (String, String, String, String, String, Int) -> Unit) {
     var titulo by remember { mutableStateOf(libro?.titulo ?: "") }
     var autor by remember { mutableStateOf(libro?.autor ?: "") }
-    var disponible by remember { mutableStateOf(libro?.disponible ?: true) }
-    var portada by remember { mutableStateOf(libro?.portada ?: "") } // Input de Portada
+    var categoria by remember { mutableStateOf(libro?.categoria ?: "") } // NUEVO
+    var descripcion by remember { mutableStateOf(libro?.descripcion ?: "") }
+    var urlPortada by remember { mutableStateOf(libro?.urlPortada ?: "") } // NUEVO
+    var copias by remember { mutableStateOf(libro?.disponible?.toString() ?: "1") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -147,16 +193,25 @@ fun LibroDialog(libro: LibroAdmin?, onDismiss: () -> Unit, onSave: (String, Stri
                 Spacer(modifier = Modifier.height(8.dp))
                 OutlinedTextField(value = autor, onValueChange = { autor = it }, label = { Text("Autor") }, modifier = Modifier.fillMaxWidth())
                 Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(value = portada, onValueChange = { portada = it }, label = { Text("Texto/Ruta de Portada") }, placeholder = { Text("Ej. Don Quijote Portada") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = categoria, onValueChange = { categoria = it }, label = { Text("Categoría") }, modifier = Modifier.fillMaxWidth())
                 Spacer(modifier = Modifier.height(8.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Checkbox(checked = disponible, onCheckedChange = { disponible = it })
-                    Text(if (disponible) "Disponible" else "No disponible")
-                }
+                OutlinedTextField(value = descripcion, onValueChange = { descripcion = it }, label = { Text("Descripción") }, modifier = Modifier.fillMaxWidth())
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(value = urlPortada, onValueChange = { urlPortada = it }, label = { Text("URL de la Portada") }, modifier = Modifier.fillMaxWidth())
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = copias,
+                    onValueChange = { copias = it },
+                    label = { Text("Copias Disponibles") },
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         },
         confirmButton = {
-            Button(onClick = { onSave(titulo, autor, disponible, portada) }) { Text("Guardar") }
+            Button(onClick = {
+                val cantidad = copias.toIntOrNull() ?: 0
+                onSave(titulo, autor, categoria, descripcion, urlPortada, cantidad)
+            }) { Text("Guardar") }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text("Cancelar") }

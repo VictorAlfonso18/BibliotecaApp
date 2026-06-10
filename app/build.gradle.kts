@@ -99,7 +99,11 @@ dependencies {
 
     // LIBRERÍA DE CÓDIGOS QR
     implementation("com.google.zxing:core:3.5.3")
+    implementation("com.journeyapps:zxing-android-embedded:4.3.0")
 
     // Iconos
     implementation("androidx.compose.material:material-icons-extended")
+
+    // Librería Coil para cargar imágenes por URL
+    implementation("io.coil-kt:coil-compose:2.6.0")
 }

@@ -9,6 +9,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.example.biblioteca.ui.viewmodels.PerfilViewModel
 import com.example.biblioteca.ui.viewmodels.PerfilState
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.ui.platform.LocalContext
 
 @Composable
 fun PerfilScreen(
@@ -16,6 +20,30 @@ fun PerfilScreen(
     onSignOutSuccess: () -> Unit
 ) {
     val estado by viewModel.perfilState.collectAsState()
+
+    LaunchedEffect(Unit) {
+        viewModel.cargarPerfil()
+    }
+
+    val contexto = LocalContext.current
+
+    val selectorDeFotos = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri ->
+        if (uri != null) {
+            try {
+                val inputStream = contexto.contentResolver.openInputStream(uri)
+                val bytesDeLaFoto = inputStream?.readBytes()
+                inputStream?.close()
+
+                if (bytesDeLaFoto != null) {
+                    viewModel.subirMiIdentificacion(bytesDeLaFoto)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -90,8 +118,9 @@ fun PerfilScreen(
                         if (!perfil.verificado) {
                             Button(
                                 onClick = {
-                                    // TODO: Aquí integrarás el selector de imágenes de Android
-                                    // para pasarle el ByteArray a viewModel.subirMiIdentificacion(bytes)
+                                    selectorDeFotos.launch(
+                                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                    )
                                 },
                                 modifier = Modifier.fillMaxWidth(),
                                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2F4F4F))

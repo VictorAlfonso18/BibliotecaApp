@@ -65,4 +65,53 @@ class LibroRepository {
             false
         }
     }
+
+    // Insertar libro
+    suspend fun insertarLibro(libro: Libro): Boolean {
+        return try {
+            db.insert(libro)
+            true
+        } catch (e: Exception) {
+            Log.e("LibroRepo", "Error al guardar Libro: ${e.message}")
+            false
+        }
+    }
+
+    // Actualizar
+    suspend fun actualizarLibro(
+        idLibro: String, titulo: String, autor: String,
+        categoria: String, descripcion: String, urlPortada: String, disponible: Int
+    ): Boolean {
+        return try {
+            db.update({
+                set("titulo", titulo)
+                set("autor", autor)
+                set("categoria", categoria)
+                set("descripcion", descripcion)
+                set("url_portada", urlPortada)
+                set("disponible", disponible)
+            }) {
+                filter { eq("id_libro", idLibro) }
+            }
+            true
+        } catch (e: Exception) {
+            Log.e("LibroRepo", "Error al actualizar libro: ${e.message}")
+            false
+        }
+    }
+
+    // Eliminar un libro
+    suspend fun eliminarLibro(idLibro: String): Boolean {
+        return try {
+            db.delete {
+                filter {
+                    eq("id_libro", idLibro)
+                }
+            }
+            true
+        } catch (e: Exception) {
+            Log.e("LibroRepo", "Error al eliminar libro: ${e.message}")
+            false
+        }
+    }
 }

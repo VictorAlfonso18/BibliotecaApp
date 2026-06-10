@@ -1,5 +1,7 @@
 package com.example.biblioteca.ui.screen
 
+import android.graphics.Bitmap
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -8,10 +10,15 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import com.example.biblioteca.data.model.Prestamo
 import com.example.biblioteca.ui.viewmodels.PrestamosViewModel
 import com.example.biblioteca.ui.viewmodels.PrestamosState
+import com.google.zxing.BarcodeFormat
+import com.google.zxing.qrcode.QRCodeWriter
 
 @Composable
 fun PrestamosScreen(
@@ -20,8 +27,65 @@ fun PrestamosScreen(
     val estado by viewModel.prestamosState.collectAsState()
     var mensaje by remember { mutableStateOf("") }
 
+    var qrSeleccionado by remember { mutableStateOf<String?>(null) }
+
     LaunchedEffect(Unit) {
         viewModel.cargarMisPrestamos()
+    }
+
+    qrSeleccionado?.let { idPrestamo ->
+        Dialog(onDismissRequest = { qrSeleccionado = null }) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                elevation = CardDefaults.cardElevation(8.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "Código de Autorización",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = Color(0xFF2F4F4F)
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    val bitmap = remember(idPrestamo) { generarQR(idPrestamo) }
+
+                    if (bitmap != null) {
+                        Image(
+                            bitmap = bitmap.asImageBitmap(),
+                            contentDescription = "Código QR del préstamo",
+                            modifier = Modifier.size(250.dp)
+                        )
+                    } else {
+                        Text("Error al generar el código QR", color = Color.Red)
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Text(
+                        text = "Muestra este código al administrador en la biblioteca para recibir o devolver tu libro.",
+                        textAlign = TextAlign.Center,
+                        color = Color.Gray,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    Button(
+                        onClick = { qrSeleccionado = null },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2F4F4F))
+                    ) {
+                        Text("Cerrar")
+                    }
+                }
+            }
+        }
     }
 
     Column(
@@ -68,8 +132,7 @@ fun PrestamosScreen(
                     LazyColumn(modifier = Modifier.fillMaxWidth()) {
                         items(misPrestamos) { prestamo ->
                             ItemPrestamo(prestamo = prestamo) { idPrestamo ->
-                                // TODO: Aquí más adelante abrirás un Dialog o navegarás a la pantalla del QR real
-                                mensaje = "Mostrar QR del préstamo:\n$idPrestamo"
+                                qrSeleccionado = idPrestamo
                             }
                         }
                     }
@@ -127,5 +190,25 @@ fun ItemPrestamo(prestamo: Prestamo, onVerQRClick: (String) -> Unit) {
                 }
             }
         }
+    }
+}
+
+fun generarQR(contenido: String): Bitmap? {
+    return try {
+        val writer = QRCodeWriter()
+        val bitMatrix = writer.encode(contenido, BarcodeFormat.QR_CODE, 512, 512)
+        val width = bitMatrix.width
+        val height = bitMatrix.height
+        val bmp = Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565)
+
+        for (x in 0 until width) {
+            for (y in 0 until height) {
+                bmp.setPixel(x, y, if (bitMatrix.get(x, y)) android.graphics.Color.BLACK else android.graphics.Color.WHITE)
+            }
+        }
+        bmp
+    } catch (e: Exception) {
+        e.printStackTrace()
+        null
     }
 }

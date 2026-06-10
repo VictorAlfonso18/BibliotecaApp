@@ -28,7 +28,7 @@ class PerfilViewModel : ViewModel() {
         cargarPerfil()
     }
 
-    private fun cargarPerfil() {
+    fun cargarPerfil() {
         viewModelScope.launch {
             _perfilState.value = PerfilState.Loading
 

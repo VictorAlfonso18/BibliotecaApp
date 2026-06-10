@@ -3,6 +3,7 @@ package com.example.biblioteca.ui.viewmodels
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.biblioteca.data.model.Libro
+import com.example.biblioteca.data.model.Prestamo
 import com.example.biblioteca.data.repository.LibroRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -58,6 +59,47 @@ class LibrosViewModel: ViewModel() {
                 _librosState.value = LibrosState.Success(resultado)
             } catch (e: Exception) {
                 _librosState.value = LibrosState.Error(e.message ?: "Error al filtrar por categoría")
+            }
+        }
+    }
+
+    fun insertarLibro(libro: Libro) {
+        viewModelScope.launch {
+            _librosState.value = LibrosState.Loading
+
+            val exito = libroRepository.insertarLibro(libro)
+
+            if (exito) {
+                cargarCatalogo()
+            } else {
+                _librosState.value = LibrosState.Error("Error al guardar libro.")
+            }
+        }
+    }
+
+    fun actualizarLibro(idLibro: String, titulo: String, autor: String, categoria: String, descripcion: String, urlPortada: String, disponible: Int) {
+        viewModelScope.launch {
+            _librosState.value = LibrosState.Loading
+
+            val exito = libroRepository.actualizarLibro(idLibro, titulo, autor, categoria, descripcion, urlPortada, disponible)
+
+            if (exito) {
+                cargarCatalogo()
+            } else {
+                _librosState.value = LibrosState.Error("Error al actualizar libro.")
+            }
+        }
+    }
+
+    fun eliminarLibro(idLibro: String) {
+        viewModelScope.launch {
+            _librosState.value = LibrosState.Loading
+            val exito = libroRepository.eliminarLibro(idLibro)
+
+            if (exito) {
+                cargarCatalogo()
+            } else {
+                _librosState.value = LibrosState.Error("No se pudo eliminar el libro")
             }
         }
     }
