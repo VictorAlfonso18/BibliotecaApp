@@ -9,6 +9,7 @@ data class Libro(
     val titulo: String = "",
     val autor: String = "",
     val categoria: String = "General",
+    val descripcion: String? = null,
     val disponible: Int = 1,
     @SerialName("url_portada") val urlPortada: String? = null,
     @SerialName("creado_en") val createdAt: String? = null

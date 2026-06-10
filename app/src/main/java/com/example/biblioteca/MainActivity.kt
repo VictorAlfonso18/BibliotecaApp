@@ -35,6 +35,9 @@ import com.example.biblioteca.ui.screen.admin.AdminPrestamosScreen
 import com.example.biblioteca.ui.screen.admin.AdminUsuariosScreen
 import com.example.biblioteca.ui.theme.BibliotecaTheme
 import com.example.biblioteca.ui.viewmodels.AuthViewModel
+import com.example.biblioteca.ui.viewmodels.LibrosViewModel
+import com.example.biblioteca.ui.viewmodels.PerfilViewModel
+import com.example.biblioteca.ui.viewmodels.PrestamosViewModel
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -78,6 +81,9 @@ enum class AppDestinations(
 fun BibliotecaApp() {
 
     val authViewModel: AuthViewModel = viewModel()
+    val librosViewModel: LibrosViewModel = viewModel()
+    val perfilViewModel: PerfilViewModel = viewModel()
+    val prestamosViewModel: PrestamosViewModel = viewModel()
 
     var currentDestination by rememberSaveable { mutableStateOf(AppDestinations.LOGIN) }
     var currentUserRole by rememberSaveable { mutableStateOf(UserRole.NONE) }
@@ -103,7 +109,10 @@ fun BibliotecaApp() {
                 currentDestination = currentDestination,
                 onRoleChange = { currentUserRole = it },
                 onNavigate = { currentDestination = it },
-                authViewModel = authViewModel
+                authViewModel = authViewModel,
+                librosViewModel = librosViewModel,
+                perfilViewModel = perfilViewModel,
+                prestamosViewModel = prestamosViewModel
             )
         }
     } else {
@@ -111,7 +120,10 @@ fun BibliotecaApp() {
             currentDestination = currentDestination,
             onRoleChange = { currentUserRole = it },
             onNavigate = { currentDestination = it },
-            authViewModel = authViewModel
+            authViewModel = authViewModel,
+            librosViewModel = librosViewModel,
+            perfilViewModel = perfilViewModel,
+            prestamosViewModel = prestamosViewModel
         )
     }
 }
@@ -121,7 +133,10 @@ fun MainContentWrapper(
     currentDestination: AppDestinations,
     onRoleChange: (UserRole) -> Unit,
     onNavigate: (AppDestinations) -> Unit,
-    authViewModel: AuthViewModel
+    authViewModel: AuthViewModel,
+    librosViewModel: LibrosViewModel,
+    perfilViewModel: PerfilViewModel,
+    prestamosViewModel: PrestamosViewModel
 ) {
     Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
         Box(modifier = Modifier.padding(innerPadding)) {
@@ -150,9 +165,21 @@ fun MainContentWrapper(
                 }
 
                 // RUTAS DE CLIENTE
-                AppDestinations.HOME -> { LibrosScreen() }
-                AppDestinations.FAVORITES -> { PrestamosScreen() }
-                AppDestinations.PROFILE -> { PerfilScreen() }
+                AppDestinations.HOME -> {
+                    LibrosScreen(viewModel = librosViewModel)
+                }
+                AppDestinations.FAVORITES -> {
+                    PrestamosScreen(viewModel = prestamosViewModel)
+                }
+                AppDestinations.PROFILE -> {
+                    PerfilScreen(
+                        viewModel = perfilViewModel,
+                        onSignOutSuccess = {
+                            onRoleChange(UserRole.NONE)
+                            onNavigate(AppDestinations.LOGIN)
+                        }
+                    )
+                }
 
                 // RUTAS DE ADMINISTRADOR
                 AppDestinations.ADMIN_HOME -> { AdminLibrosScreen() }
