@@ -26,11 +26,9 @@ fun LibrosScreen(
 ) {
 
     val estado by viewModel.librosState.collectAsState()
-
     val estadoPrestamo by prestamosViewModel.prestamosState.collectAsState()
 
     var mensaje by remember { mutableStateOf("") }
-
     var solicitudEnviada by remember { mutableStateOf(false) }
 
     LaunchedEffect(estadoPrestamo) {
@@ -58,9 +56,7 @@ fun LibrosScreen(
 
         if (mensaje.isNotEmpty()) {
             Spacer(modifier = Modifier.height(8.dp))
-
             val colorMensaje = if (mensaje.contains("Error") || mensaje.contains("Debes")) Color.Red else Color(0xFF2E7D32)
-
             Text(text = mensaje, color = colorMensaje)
         }
 
@@ -88,7 +84,7 @@ fun LibrosScreen(
                     LazyColumn(modifier = Modifier.fillMaxWidth()) {
                         items(librosBD) { libro ->
                             ItemLibro(libro = libro, onAgregarClick = {
-                                if (!libro.id.isNullOrBlank()) {
+                                if (libro.id.isNullOrBlank()) {
                                     mensaje = "Error: Libro sin identificador válido."
                                 } else {
                                     prestamosViewModel.solicitarNuevoPrestamo(libro.id)

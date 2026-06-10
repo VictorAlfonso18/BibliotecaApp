@@ -24,19 +24,13 @@ class AuthRepository {
         }
     }
 
-    // Registro
     suspend fun registrarse(nombre: String, correo: String, pass: String): Result<Unit> {
         return try {
-            auth.signUpWith(Email) {
-                this.email = correo
-                password = pass
-            }
-
             val resultado = auth.signUpWith(Email) {
                 this.email = correo
-                password = pass
+                this.password = pass
             }
-            val userId = resultado?.id ?: throw Exception("Error al obtener ID")
+            val userId = resultado?.id ?: throw Exception("Error al obtener ID del usuario registrado")
 
             val newUserProfile = Usuario(id = userId, correo = correo, nombre = nombre)
             db.insert(newUserProfile)
@@ -48,15 +42,15 @@ class AuthRepository {
         }
     }
 
-    // Funcion para verificar si hay usuario logueado
+    // Verificar si hay usuario logueado
     fun isUserLoggedIn(): Boolean {
         return auth.currentSessionOrNull() != null
     }
 
-    // Funcion para obtener el ID del usuario actual
+    // Obtener el ID del usuario actual
     fun getCurrentUserId(): String? = auth.currentUserOrNull()?.id
 
-    // Funcion para cerrar sesion
+    // Cerrar sesion
     suspend fun signOut() {
         auth.signOut()
     }

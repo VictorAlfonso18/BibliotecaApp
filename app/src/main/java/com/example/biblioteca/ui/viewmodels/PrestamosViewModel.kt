@@ -12,12 +12,12 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 sealed class PrestamosState {
-    object Loading : PrestamosState() // Cargando
-    data class Success(val prestamos: List<Prestamo>) : PrestamosState() // Estado exitoso con la lista adentro
-    data class Error(val message: String) : PrestamosState() // Error
+    object Loading : PrestamosState()
+    data class Success(val prestamos: List<Prestamo>) : PrestamosState()
+    data class Error(val message: String) : PrestamosState()
 }
 
-class PrestamosViewModel: ViewModel() {
+class PrestamosViewModel : ViewModel() {
     private val authRepository = AuthRepository()
     private val prestamoRepository = PrestamoRepository()
     private val usuarioRepository = UsuarioRepository()
@@ -52,7 +52,7 @@ class PrestamosViewModel: ViewModel() {
 
             val perfil = usuarioRepository.obtenerPerfil(miId)
 
-            if (perfil == null || perfil.verificado == false){
+            if (perfil == null || !perfil.verificado) {
                 _prestamosState.value = PrestamosState.Error("Debes subir tu identificación primero.")
                 return@launch
             }
@@ -84,18 +84,21 @@ class PrestamosViewModel: ViewModel() {
 
     fun procesarCodigoQR(idPrestamoEscaneado: String) {
         viewModelScope.launch {
-            val estadoActual = (prestamosState.value as? PrestamosState.Success)
-                ?.prestamos
-                ?.find { it.id == idPrestamoEscaneado }
-                ?.estado
-
             _prestamosState.value = PrestamosState.Loading
 
-            val nuevoEstado = when (estadoActual) {
+            val todosPrestamos = prestamoRepository.obtenerTodosLosPrestamos()
+            val prestamo = todosPrestamos.find { it.id == idPrestamoEscaneado }
+
+            if (prestamo == null) {
+                _prestamosState.value = PrestamosState.Error("Préstamo no encontrado.")
+                return@launch
+            }
+
+            val nuevoEstado = when (prestamo.estado) {
                 "pendiente" -> "activo"
                 "activo" -> "devuelto"
                 else -> {
-                    _prestamosState.value = PrestamosState.Error("Préstamo no encontrado o estado no válido.")
+                    _prestamosState.value = PrestamosState.Error("Este préstamo ya fue devuelto o tiene un estado no válido.")
                     return@launch
                 }
             }
