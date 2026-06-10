@@ -2,4 +2,11 @@
 <resources>
 
     <style name="Theme.Biblioteca" parent="android:Theme.Material.Light.NoActionBar" />
+
+    <!-- Splash Screen-->
+    <style name="Theme.App.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">#F5EFE6</item>
+        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher_round</item>
+        <item name="postSplashScreenTheme">@style/Theme.Biblioteca</item>
+    </style>
 </resources>

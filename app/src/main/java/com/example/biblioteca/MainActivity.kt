@@ -21,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.PreviewScreenSizes
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 
 // Inicializador de Supabase
 import com.example.biblioteca.core.SupabaseClientHelper
@@ -43,6 +44,7 @@ import com.example.biblioteca.ui.viewmodels.UsuariosViewModel
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+        installSplashScreen()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
@@ -211,7 +213,14 @@ fun MainContentWrapper(
                     )
                 }
                 AppDestinations.ADMIN_USUARIOS -> {
-                    AdminUsuariosScreen(viewModel = usuariosViewModel)
+                    AdminUsuariosScreen(
+                        viewModel = usuariosViewModel,
+                        onSignOut = {
+                            perfilViewModel.cerrarSesion()
+                            onRoleChange(UserRole.NONE)
+                            onNavigate(AppDestinations.LOGIN)
+                        }
+                    )
                 }
             }
         }

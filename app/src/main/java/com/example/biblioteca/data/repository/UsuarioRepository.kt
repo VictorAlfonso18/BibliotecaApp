@@ -25,26 +25,29 @@ class UsuarioRepository {
     }
 
     // Subir identificacion
-    suspend fun subirIdentificacion(idUsuario: String, dataImagen: ByteArray): Boolean {
+    suspend fun subirIdentificacion(idUsuario: String, fotoBytes: ByteArray): Boolean {
         return try {
-            val nombreArchivo = "$idUsuario.jpg"
+            val nombreBucket = "identificaciones"
+            val nombreArchivo = "${idUsuario}_credencial.jpg"
 
-            storage.upload(nombreArchivo, dataImagen) {
+            val bucket = SupabaseClientHelper.client.storage.from(nombreBucket)
+            bucket.upload(nombreArchivo, fotoBytes) {
                 upsert = true
             }
 
-            val url = storage.publicUrl(nombreArchivo)
+            val urlPublica = bucket.publicUrl(nombreArchivo)
 
             db.update({
-                set("url_identificacion", url)
+                set("url_identificacion", urlPublica)
             }) {
                 filter {
                     eq("id_usuario", idUsuario)
                 }
             }
+
             true
         } catch (e: Exception) {
-            Log.e("UsuarioRepo", "Error al subir identificacion: ${e.message}")
+            Log.e("UsuarioRepo", "Error al subir identificación: ${e.message}")
             false
         }
     }

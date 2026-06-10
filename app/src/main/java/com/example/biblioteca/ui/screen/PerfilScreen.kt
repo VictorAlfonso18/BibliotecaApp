@@ -109,6 +109,8 @@ fun PerfilScreen(
 
                         if (perfil.verificado) {
                             Text(text = "Verificación: Aprobada", color = Color(0xFF2E7D32))
+                        } else if (!perfil.urlIdentificacion.isNullOrEmpty()) {
+                            Text(text = "Verificación: En Revisión", color = Color(0xFFE65100))
                         } else {
                             Text(text = "Verificación: Pendiente", color = Color.Red)
                         }
@@ -125,7 +127,11 @@ fun PerfilScreen(
                                 modifier = Modifier.fillMaxWidth(),
                                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2F4F4F))
                             ) {
-                                Text("Subir Identificación")
+                                if (!perfil.urlIdentificacion.isNullOrEmpty()) {
+                                    Text("Cambiar Identificación")
+                                } else {
+                                    Text("Subir Identificación")
+                                }
                             }
                             Spacer(modifier = Modifier.height(8.dp))
                         }

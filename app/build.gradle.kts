@@ -109,4 +109,7 @@ dependencies {
 
     // SDK de Gemini para Android
     implementation("com.google.ai.client.generativeai:generativeai:0.7.0")
+
+    // Libreria Splash Screen
+    implementation("androidx.core:core-splashscreen:1.0.1")
 }

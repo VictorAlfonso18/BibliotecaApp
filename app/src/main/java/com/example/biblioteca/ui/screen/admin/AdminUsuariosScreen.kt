@@ -21,7 +21,8 @@ import com.example.biblioteca.ui.viewmodels.UsuariosState
 
 @Composable
 fun AdminUsuariosScreen(
-    viewModel: UsuariosViewModel
+    viewModel: UsuariosViewModel,
+    onSignOut: () -> Unit
 ) {
     val estado by viewModel.usuariosState.collectAsState()
     var searchQuery by remember { mutableStateOf("") }
@@ -108,7 +109,19 @@ fun AdminUsuariosScreen(
     }
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        Text("Control de Usuarios", fontSize = 24.sp, color = Color(0xFF2F4F4F))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("Control de Usuarios", fontSize = 24.sp, color = Color(0xFF2F4F4F))
+
+            TextButton(onClick = onSignOut) {
+                Text("Salir", color = Color.Red)
+            }
+        }
+
         Spacer(modifier = Modifier.height(16.dp))
 
         OutlinedTextField(
@@ -173,11 +186,14 @@ fun AdminUsuariosScreen(
                                             Text("Ver Identificación")
                                         }
 
-                                        Button(onClick = {
-                                            if (!usuario.id.isNullOrBlank()) {
-                                                viewModel.aprobarUsuario(usuario.id)
-                                            }
-                                        }) {
+                                        Button(
+                                            onClick = {
+                                                if (!usuario.id.isNullOrBlank()) {
+                                                    viewModel.aprobarUsuario(usuario.id)
+                                                }
+                                            },
+                                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2F4F4F))
+                                        ) {
                                             Text("Aprobar")
                                         }
                                     }
