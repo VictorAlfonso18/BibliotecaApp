@@ -5,7 +5,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class Libro(
-    @SerialName("id_libro") val id: String = "",
+    @SerialName("id_libro") val id: String? = null,
     val titulo: String = "",
     val autor: String = "",
     val categoria: String = "General",

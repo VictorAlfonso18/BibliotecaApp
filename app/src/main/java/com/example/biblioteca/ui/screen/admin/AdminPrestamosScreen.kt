@@ -50,7 +50,7 @@ fun AdminPrestamosScreen(viewModel: PrestamosViewModel) {
 
     val prestamosFiltrados = prestamosReales.filter { prestamo ->
         val coincideBusqueda = prestamo.usuarioId.contains(searchQuery, ignoreCase = true) ||
-                prestamo.libroId.contains(searchQuery, ignoreCase = true)
+                prestamo.libroId?.contains(searchQuery, ignoreCase = true) == true
         val coincideFiltro = selectedFilter == "todos" || prestamo.estado.equals(selectedFilter, ignoreCase = true)
         coincideBusqueda && coincideFiltro
     }

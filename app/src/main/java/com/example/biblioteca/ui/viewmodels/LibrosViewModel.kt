@@ -121,7 +121,7 @@ class LibrosViewModel: ViewModel() {
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val client = HttpClient(CIO)
-                val apiKey = ""
+                val apiKey = "AIzaSyA3fAaRaabzTZqlzDIPBeoYTNPRg7nv7Ns"
                 val url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=$apiKey"
 
                 val body = """
@@ -158,6 +158,50 @@ class LibrosViewModel: ViewModel() {
                     onError("Error (${e.javaClass.simpleName}): ${e.message}")
                 }
             }
+        }
+    }
+
+    fun subirPortadaYGuardarLibro(
+        idLibro: String?,
+        datosLibro: Triple<String, String, String>,
+        descripcion: String,
+        urlPortadaActual: String,
+        copias: Int,
+        imagenBytes: ByteArray?,
+        onDone: () -> Unit
+    ) {
+        viewModelScope.launch {
+            _librosState.value = LibrosState.Loading
+
+            val urlFinal: String = if (imagenBytes != null) {
+                val idParaStorage = if (idLibro.isNullOrBlank())
+                    System.currentTimeMillis().toString()
+                else
+                    idLibro
+                libroRepository.subirPortada(idParaStorage, imagenBytes) ?: urlPortadaActual
+            } else {
+                urlPortadaActual
+            }
+
+            val (titulo, autor, categoria) = datosLibro
+
+            val exito = if (idLibro.isNullOrBlank()) {
+                libroRepository.insertarLibro(
+                    Libro(
+                        titulo = titulo, autor = autor, categoria = categoria,
+                        descripcion = descripcion, urlPortada = urlFinal, disponible = copias
+                    )
+                )
+            } else {
+                libroRepository.actualizarLibro(idLibro, titulo, autor, categoria, descripcion, urlFinal, copias)
+            }
+
+            if (exito) {
+                cargarCatalogo()
+            } else {
+                _librosState.value = LibrosState.Error("Error al guardar el libro.")
+            }
+            onDone()
         }
     }
 }

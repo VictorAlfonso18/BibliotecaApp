@@ -154,7 +154,7 @@ fun ItemPrestamo(prestamo: Prestamo, onVerQRClick: (String) -> Unit) {
         Column(modifier = Modifier.padding(16.dp)) {
 
             Text(
-                text = "Préstamo #${if (prestamo.id.isNotBlank()) prestamo.id.take(8) else "Desconocido"}",
+                text = "Préstamo #${if (!prestamo.id.isNullOrBlank()) prestamo.id.take(8) else "Desconocido"}",
                 style = MaterialTheme.typography.titleMedium,
                 color = Color(0xFF3E2723)
             )

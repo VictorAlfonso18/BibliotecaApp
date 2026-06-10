@@ -88,7 +88,7 @@ fun LibrosScreen(
                     LazyColumn(modifier = Modifier.fillMaxWidth()) {
                         items(librosBD) { libro ->
                             ItemLibro(libro = libro, onAgregarClick = {
-                                if (libro.id.isBlank()) {
+                                if (!libro.id.isNullOrBlank()) {
                                     mensaje = "Error: Libro sin identificador válido."
                                 } else {
                                     prestamosViewModel.solicitarNuevoPrestamo(libro.id)

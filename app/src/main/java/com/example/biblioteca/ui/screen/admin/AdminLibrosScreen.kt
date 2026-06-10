@@ -1,10 +1,8 @@
 package com.example.biblioteca.ui.screen.admin
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
@@ -19,6 +17,13 @@ import com.example.biblioteca.ui.viewmodels.LibrosViewModel
 import com.example.biblioteca.ui.viewmodels.LibrosState
 import coil.compose.AsyncImage
 import androidx.compose.ui.layout.ContentScale
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextAlign
 
 @Composable
 fun AdminLibrosScreen(viewModel: LibrosViewModel) {
@@ -85,7 +90,7 @@ fun AdminLibrosScreen(viewModel: LibrosViewModel) {
                             showDialog = true
                         },
                         onDelete = {
-                            if (libro.id.isNotBlank()) {
+                            if (!libro.id.isNullOrBlank()) {
                                 viewModel.eliminarLibro(libro.id)
                             }
                         }
@@ -100,33 +105,7 @@ fun AdminLibrosScreen(viewModel: LibrosViewModel) {
             viewModel = viewModel,
             libro = libroActual,
             onDismiss = { showDialog = false },
-            onSave = { titulo, autor, categoria, descripcion, urlPortada, copias ->
-                if (libroActual == null) {
-                    val nuevoLibro = Libro(
-                        titulo = titulo,
-                        autor = autor,
-                        categoria = categoria,
-                        descripcion = descripcion,
-                        urlPortada = urlPortada,
-                        disponible = copias
-                    )
-                    viewModel.insertarLibro(nuevoLibro)
-                } else {
-                    val idLibro = libroActual?.id ?: ""
-                    if (idLibro.isNotBlank()) {
-                        viewModel.actualizarLibro(
-                            idLibro = idLibro,
-                            titulo = titulo,
-                            autor = autor,
-                            categoria = categoria,
-                            descripcion = descripcion,
-                            urlPortada = urlPortada,
-                            disponible = copias
-                        )
-                    }
-                }
-                showDialog = false
-            }
+            onSave = { _, _, _, _, _, _ -> showDialog = false }
         )
     }
 }
@@ -193,6 +172,26 @@ fun LibroDialog(
 
     var generandoIA by remember { mutableStateOf(false) }
     var errorIA by remember { mutableStateOf("") }
+    var imagenBytes by remember { mutableStateOf<ByteArray?>(null) }
+    var guardando by remember { mutableStateOf(false) }
+
+    val contexto = LocalContext.current
+
+    val selectorFoto = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri ->
+        if (uri != null) {
+            try {
+                val inputStream = contexto.contentResolver.openInputStream(uri)
+                imagenBytes = inputStream?.readBytes()
+                inputStream?.close()
+                // Mostramos nombre local como preview
+                urlPortada = uri.lastPathSegment ?: "imagen seleccionada"
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -208,33 +207,81 @@ fun LibroDialog(
                 OutlinedTextField(value = categoria, onValueChange = { categoria = it }, label = { Text("Categoría") }, modifier = Modifier.fillMaxWidth())
                 Spacer(modifier = Modifier.height(16.dp))
 
+                // Selector de portada
+                Text("Portada", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    // Preview de la imagen actual o seleccionada
+                    Card(
+                        modifier = Modifier.size(width = 60.dp, height = 80.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFF6D9886))
+                    ) {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            if (imagenBytes != null) {
+                                // Imagen recién seleccionada de galería
+                                val bitmap = remember(imagenBytes) {
+                                    android.graphics.BitmapFactory.decodeByteArray(imagenBytes, 0, imagenBytes!!.size)
+                                }
+                                bitmap?.let {
+                                    Image(
+                                        bitmap = it.asImageBitmap(),
+                                        contentDescription = "Portada seleccionada",
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                }
+                            } else if (!libro?.urlPortada.isNullOrEmpty()) {
+                                // Portada existente en Supabase
+                                AsyncImage(
+                                    model = libro?.urlPortada,
+                                    contentDescription = "Portada actual",
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
+                                )
+                            } else {
+                                Text("SIN\nFOTO", color = Color.White, fontSize = 10.sp, textAlign = TextAlign.Center)
+                            }
+                        }
+                    }
+
+                    Button(
+                        onClick = {
+                            selectorFoto.launch(
+                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                            )
+                        },
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2F4F4F))
+                    ) {
+                        Text(if (imagenBytes != null) "Cambiar imagen" else "Seleccionar de galería", fontSize = 12.sp)
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // IA para descripción
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text("Descripción", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
-
                     if (titulo.isNotBlank() && autor.isNotBlank()) {
                         TextButton(
                             onClick = {
                                 generandoIA = true
                                 errorIA = ""
                                 viewModel.generarDescripcionConIA(
-                                    titulo = titulo,
-                                    autor = autor,
-                                    categoria = categoria,
-                                    onResult = { sinopsis ->
-                                        descripcion = sinopsis
-                                        generandoIA = false
-                                    },
-                                    onError = { error ->
-                                        errorIA = error
-                                        generandoIA = false
-                                    }
+                                    titulo = titulo, autor = autor, categoria = categoria,
+                                    onResult = { descripcion = it; generandoIA = false },
+                                    onError = { errorIA = it; generandoIA = false }
                                 )
                             },
-                            enabled = !generandoIA // Desactivamos el botón mientras piensa
+                            enabled = !generandoIA
                         ) {
                             if (generandoIA) {
                                 CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
@@ -246,39 +293,46 @@ fun LibroDialog(
                         }
                     }
                 }
-
                 OutlinedTextField(
-                    value = descripcion,
-                    onValueChange = { descripcion = it },
-                    modifier = Modifier.fillMaxWidth().height(120.dp), // Lo hacemos un poco más alto
-                    maxLines = 5
+                    value = descripcion, onValueChange = { descripcion = it },
+                    modifier = Modifier.fillMaxWidth().height(120.dp), maxLines = 5
                 )
-
                 if (errorIA.isNotEmpty()) {
                     Text(text = errorIA, color = Color.Red, fontSize = 12.sp)
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(value = urlPortada, onValueChange = { urlPortada = it }, label = { Text("URL de la Portada") }, modifier = Modifier.fillMaxWidth())
-                Spacer(modifier = Modifier.height(8.dp))
-
                 OutlinedTextField(
-                    value = copias,
-                    onValueChange = { copias = it },
-                    label = { Text("Copias Disponibles") },
-                    modifier = Modifier.fillMaxWidth()
+                    value = copias, onValueChange = { copias = it },
+                    label = { Text("Copias Disponibles") }, modifier = Modifier.fillMaxWidth()
                 )
             }
         },
         confirmButton = {
-            Button(onClick = {
-                val cantidad = copias.toIntOrNull() ?: 0
-                if (titulo.isBlank() || autor.isBlank()) return@Button
-                onSave(titulo, autor, categoria, descripcion, urlPortada, cantidad)
-            }) { Text("Guardar") }
+            Button(
+                onClick = {
+                    if (titulo.isBlank() || autor.isBlank()) return@Button
+                    guardando = true
+                    val cantidad = copias.toIntOrNull() ?: 0
+                    viewModel.subirPortadaYGuardarLibro(
+                        idLibro = libro?.id,
+                        datosLibro = Triple(titulo, autor, categoria),
+                        descripcion = descripcion,
+                        urlPortadaActual = libro?.urlPortada ?: "",
+                        copias = cantidad,
+                        imagenBytes = imagenBytes,
+                        onDone = { guardando = false; onDismiss() }
+                    )
+                },
+                enabled = !guardando
+            ) {
+                if (guardando) {
+                    CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = Color.White)
+                } else {
+                    Text("Guardar")
+                }
+            }
         },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancelar") }
-        }
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } }
     )
 }

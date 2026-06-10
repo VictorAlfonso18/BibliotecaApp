@@ -41,7 +41,7 @@ class PrestamosViewModel: ViewModel() {
         }
     }
 
-    fun solicitarNuevoPrestamo(idLibro: String) {
+    fun solicitarNuevoPrestamo(idLibro: String?) {
         viewModelScope.launch {
             _prestamosState.value = PrestamosState.Loading
 

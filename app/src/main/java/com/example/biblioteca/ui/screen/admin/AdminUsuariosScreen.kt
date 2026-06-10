@@ -174,7 +174,7 @@ fun AdminUsuariosScreen(
                                         }
 
                                         Button(onClick = {
-                                            if (usuario.id.isNotBlank()) {
+                                            if (!usuario.id.isNullOrBlank()) {
                                                 viewModel.aprobarUsuario(usuario.id)
                                             }
                                         }) {

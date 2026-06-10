@@ -4,6 +4,7 @@ import android.util.Log
 import com.example.biblioteca.core.SupabaseClientHelper
 import com.example.biblioteca.data.model.Libro
 import io.github.jan.supabase.postgrest.from
+import io.github.jan.supabase.storage.storage
 
 class LibroRepository {
     private val db = SupabaseClientHelper.client.from("libros")
@@ -112,6 +113,23 @@ class LibroRepository {
         } catch (e: Exception) {
             Log.e("LibroRepo", "Error al eliminar libro: ${e.message}")
             false
+        }
+    }
+
+    // Subir portada
+    suspend fun subirPortada(idLibro: String, dataImagen: ByteArray): String? {
+        return try {
+            val storage = SupabaseClientHelper.client.storage.from("portadas")
+            val nombreArchivo = "$idLibro.jpg"
+
+            storage.upload(nombreArchivo, dataImagen) {
+                upsert = true
+            }
+
+            storage.publicUrl(nombreArchivo)
+        } catch (e: Exception) {
+            Log.e("LibroRepo", "Error al subir portada: ${e.message}")
+            null
         }
     }
 }
