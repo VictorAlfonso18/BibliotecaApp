@@ -19,25 +19,30 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.PreviewScreenSizes
+import androidx.lifecycle.viewmodel.compose.viewModel
 
-// Importaciones de Usuario
+// Inicializador de Supabase
+import com.example.biblioteca.core.SupabaseClientHelper
+
+// Importaciones de Vistas y ViewModels
 import com.example.biblioteca.ui.screen.LibrosScreen
 import com.example.biblioteca.ui.screen.PerfilScreen
 import com.example.biblioteca.ui.screen.PrestamosScreen
 import com.example.biblioteca.ui.screen.LoginScreen
 import com.example.biblioteca.ui.screen.RegistroScreen
-
-// Importaciones de Admin
 import com.example.biblioteca.ui.screen.admin.AdminLibrosScreen
 import com.example.biblioteca.ui.screen.admin.AdminPrestamosScreen
 import com.example.biblioteca.ui.screen.admin.AdminUsuariosScreen
-
 import com.example.biblioteca.ui.theme.BibliotecaTheme
+import com.example.biblioteca.ui.viewmodels.AuthViewModel
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        // Iniciar Supabase
+        SupabaseClientHelper.initialize(applicationContext)
 
         setContent {
             BibliotecaTheme {
@@ -47,27 +52,22 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-// 1. Definimos los roles
+// Definimos los roles
 enum class UserRole {
     NONE, USER, ADMIN
 }
 
-// 2. Actualizamos las rutas asignándoles su rol correspondiente
+// Actualizamos las rutas
 enum class AppDestinations(
     val label: String,
     val icon: Int,
     val role: UserRole
 ) {
-    // Pantallas generales
     LOGIN("Login", R.drawable.ic_account_box, UserRole.NONE),
     REGISTRO("Registro", R.drawable.ic_account_box, UserRole.NONE),
-
-    // Pantallas de Usuario Normal
     HOME("Libros", R.drawable.ic_home, UserRole.USER),
     FAVORITES("Préstamos", R.drawable.ic_favorite, UserRole.USER),
     PROFILE("Perfil", R.drawable.ic_account_box, UserRole.USER),
-
-    // Pantallas de Administrador
     ADMIN_HOME("Admin Libros", R.drawable.ic_home, UserRole.ADMIN),
     ADMIN_PRESTAMOS("Admin Préstamos", R.drawable.ic_favorite, UserRole.ADMIN),
     ADMIN_USUARIOS("Usuarios", R.drawable.ic_account_box, UserRole.ADMIN)
@@ -77,39 +77,24 @@ enum class AppDestinations(
 @Composable
 fun BibliotecaApp() {
 
-    // La app arranca directamente en la pantalla de LOGIN
-    var currentDestination by rememberSaveable {
-        mutableStateOf(AppDestinations.LOGIN)
-    }
+    val authViewModel: AuthViewModel = viewModel()
 
-    // El rol arranca vacío hasta que se elija en el Login
-    var currentUserRole by rememberSaveable {
-        mutableStateOf(UserRole.NONE)
-    }
+    var currentDestination by rememberSaveable { mutableStateOf(AppDestinations.LOGIN) }
+    var currentUserRole by rememberSaveable { mutableStateOf(UserRole.NONE) }
 
     val showNavigationBars = currentDestination.role != UserRole.NONE
 
     if (showNavigationBars) {
         NavigationSuiteScaffold(
             navigationSuiteItems = {
-                // Solo dibuja en la barra de abajo los elementos del ROL ACTUAL
                 AppDestinations.entries
                     .filter { it.role == currentUserRole }
                     .forEach { destination ->
                         item(
-                            icon = {
-                                Icon(
-                                    painter = painterResource(destination.icon),
-                                    contentDescription = destination.label
-                                )
-                            },
-                            label = {
-                                Text(destination.label)
-                            },
+                            icon = { Icon(painterResource(destination.icon), contentDescription = destination.label) },
+                            label = { Text(destination.label) },
                             selected = destination == currentDestination,
-                            onClick = {
-                                currentDestination = destination
-                            }
+                            onClick = { currentDestination = destination }
                         )
                     }
             }
@@ -117,14 +102,16 @@ fun BibliotecaApp() {
             MainContentWrapper(
                 currentDestination = currentDestination,
                 onRoleChange = { currentUserRole = it },
-                onNavigate = { currentDestination = it }
+                onNavigate = { currentDestination = it },
+                authViewModel = authViewModel
             )
         }
     } else {
         MainContentWrapper(
             currentDestination = currentDestination,
             onRoleChange = { currentUserRole = it },
-            onNavigate = { currentDestination = it }
+            onNavigate = { currentDestination = it },
+            authViewModel = authViewModel
         )
     }
 }
@@ -133,25 +120,19 @@ fun BibliotecaApp() {
 fun MainContentWrapper(
     currentDestination: AppDestinations,
     onRoleChange: (UserRole) -> Unit,
-    onNavigate: (AppDestinations) -> Unit
+    onNavigate: (AppDestinations) -> Unit,
+    authViewModel: AuthViewModel
 ) {
-    Scaffold(
-        modifier = Modifier.fillMaxSize()
-    ) { innerPadding ->
-        Box(
-            modifier = Modifier.padding(innerPadding)
-        ) {
+    Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+        Box(modifier = Modifier.padding(innerPadding)) {
             when (currentDestination) {
-                // Rutas sin barra
                 AppDestinations.LOGIN -> {
                     LoginScreen(
-                        onLoginUser = {
+                        viewModel = authViewModel,
+                        onLoginSuccess = {
+                            // TODO: Más adelante, aquí consultaremos la BD para saber si es ADMIN o USER.
                             onRoleChange(UserRole.USER)
                             onNavigate(AppDestinations.HOME)
-                        },
-                        onLoginAdmin = {
-                            onRoleChange(UserRole.ADMIN)
-                            onNavigate(AppDestinations.ADMIN_HOME)
                         },
                         onNavigateToRegistro = {
                             onNavigate(AppDestinations.REGISTRO)
@@ -160,18 +141,20 @@ fun MainContentWrapper(
                 }
                 AppDestinations.REGISTRO -> {
                     RegistroScreen(
+                        viewModel = authViewModel,
                         onRegistroSuccess = {
-                            onNavigate(AppDestinations.LOGIN)
+                            onRoleChange(UserRole.USER)
+                            onNavigate(AppDestinations.HOME)
                         }
                     )
                 }
 
-                // Rutas de Usuario Normal
+                // RUTAS DE CLIENTE
                 AppDestinations.HOME -> { LibrosScreen() }
                 AppDestinations.FAVORITES -> { PrestamosScreen() }
                 AppDestinations.PROFILE -> { PerfilScreen() }
 
-                // Rutas de Administrador
+                // RUTAS DE ADMINISTRADOR
                 AppDestinations.ADMIN_HOME -> { AdminLibrosScreen() }
                 AppDestinations.ADMIN_PRESTAMOS -> { AdminPrestamosScreen() }
                 AppDestinations.ADMIN_USUARIOS -> { AdminUsuariosScreen() }

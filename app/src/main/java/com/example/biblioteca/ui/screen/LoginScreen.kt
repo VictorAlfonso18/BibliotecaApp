@@ -9,22 +9,35 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import com.example.biblioteca.ui.viewmodels.AuthViewModel
+import com.example.biblioteca.ui.viewmodels.AuthState
 
 @Composable
 fun LoginScreen(
-    onLoginUser: () -> Unit,
-    onLoginAdmin: () -> Unit,
+    viewModel: AuthViewModel,
+    onLoginSuccess: () -> Unit,
     onNavigateToRegistro: () -> Unit
 ) {
+
+    val authState by viewModel.authState.collectAsState()
+
     var correo by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+
+    LaunchedEffect(authState) {
+        if (authState is AuthState.Success) {
+            onLoginSuccess()
+            viewModel.resetState()
+        }
+    }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp)
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
-        // Título con tu color Verde Oscuro
         Text(
             text = "Iniciar Sesión",
             style = MaterialTheme.typography.headlineLarge,
@@ -33,7 +46,6 @@ fun LoginScreen(
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // Tarjeta con tu estilo Crema/Arena y elevación de 6.dp
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(
@@ -44,7 +56,8 @@ fun LoginScreen(
             )
         ) {
             Column(
-                modifier = Modifier.padding(16.dp)
+                modifier = Modifier.padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
                     text = "Ingresa tus credenciales",
@@ -54,7 +67,6 @@ fun LoginScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Campo de Correo
                 OutlinedTextField(
                     value = correo,
                     onValueChange = { correo = it },
@@ -66,7 +78,6 @@ fun LoginScreen(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Campo de Contraseña
                 OutlinedTextField(
                     value = password,
                     onValueChange = { password = it },
@@ -78,33 +89,40 @@ fun LoginScreen(
 
                 Spacer(modifier = Modifier.height(20.dp))
 
-                // Botón para ingresar como Usuario
-                Button(
-                    onClick = { onLoginUser() },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Ingresar como Usuario")
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // Botón para ingresar como Administrador
-                Button(
-                    onClick = { onLoginAdmin() },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Ingresar como Administrador")
+                when (authState) {
+                    is AuthState.Loading -> {
+                        CircularProgressIndicator(color = Color(0xFF2F4F4F))
+                    }
+                    is AuthState.Error -> {
+                        val error = (authState as AuthState.Error).message
+                        Text(text = error, color = MaterialTheme.colorScheme.error)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Button(
+                            onClick = { viewModel.iniciarSesion(correo, password) },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Reintentar")
+                        }
+                    }
+                    else -> {
+                        Button(
+                            onClick = { viewModel.iniciarSesion(correo, password) },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2F4F4F))
+                        ) {
+                            Text("Ingresar")
+                        }
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Texto para saltar al Registro
                 Text(
                     text = "¿No tienes cuenta? Regístrate aquí",
                     color = Color(0xFF2F4F4F),
                     modifier = Modifier
-                        .align(Alignment.CenterHorizontally)
                         .clickable { onNavigateToRegistro() }
+                        .padding(8.dp)
                 )
             }
         }

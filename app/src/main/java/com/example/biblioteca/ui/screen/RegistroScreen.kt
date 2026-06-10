@@ -3,29 +3,47 @@ package com.example.biblioteca.ui.screen
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import com.example.biblioteca.ui.viewmodels.AuthViewModel
+import com.example.biblioteca.ui.viewmodels.AuthState
 
 @Composable
 fun RegistroScreen(
-    onRegistroSuccess: () -> Unit // Acción para regresar al login
+    viewModel: AuthViewModel,
+    onRegistroSuccess: () -> Unit
 ) {
+
+    val authState by viewModel.authState.collectAsState()
+
     var nombre by remember { mutableStateOf("") }
     var correo by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmarPassword by remember { mutableStateOf("") }
 
+    var errorLocal by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(authState) {
+        if (authState is AuthState.Success) {
+            onRegistroSuccess()
+            viewModel.resetState()
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp)
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
             text = "Crear Cuenta",
             style = MaterialTheme.typography.headlineLarge,
-            color = Color(0xFF2F4F4F)
+            color = Color(0xFF2F4F4F),
+            modifier = Modifier.align(Alignment.Start)
         )
 
         Spacer(modifier = Modifier.height(20.dp))
@@ -88,14 +106,61 @@ fun RegistroScreen(
 
                 Spacer(modifier = Modifier.height(20.dp))
 
-                // Al dar clic, te regresa al Login simulando que guardó el usuario
-                Button(
-                    onClick = { onRegistroSuccess() },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Registrarme")
+                if (errorLocal != null) {
+                    Text(text = errorLocal!!, color = MaterialTheme.colorScheme.error)
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+
+                when (authState) {
+                    is AuthState.Loading -> {
+                        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator(color = Color(0xFF2F4F4F))
+                        }
+                    }
+                    is AuthState.Error -> {
+                        val errorMsg = (authState as AuthState.Error).message
+                        Text(text = errorMsg, color = MaterialTheme.colorScheme.error)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        BotonRegistrar(nombre, correo, password, confirmarPassword, viewModel) { error ->
+                            errorLocal = error
+                        }
+                    }
+                    else -> {
+                        BotonRegistrar(nombre, correo, password, confirmarPassword, viewModel) { error ->
+                            errorLocal = error
+                        }
+                    }
                 }
             }
         }
+    }
+}
+
+@Composable
+fun BotonRegistrar(
+    nombre: String,
+    correo: String,
+    pass: String,
+    confirmaPass: String,
+    viewModel: AuthViewModel,
+    onError: (String?) -> Unit
+) {
+    Button(
+        onClick = {
+            if (nombre.isBlank() || correo.isBlank() || pass.isBlank()) {
+                onError("Por favor, llena todos los campos.")
+            } else if (pass != confirmaPass) {
+                onError("Las contraseñas no coinciden.")
+            } else if (pass.length < 6) {
+                onError("La contraseña debe tener al menos 6 caracteres.")
+            } else {
+                onError(null)
+                viewModel.registrarse(nombre, correo, pass)
+            }
+        },
+        modifier = Modifier.fillMaxWidth(),
+        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2F4F4F))
+    ) {
+        Text("Registrarme")
     }
 }
