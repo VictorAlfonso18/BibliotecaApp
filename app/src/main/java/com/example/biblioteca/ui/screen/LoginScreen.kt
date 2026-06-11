@@ -1,5 +1,6 @@
 package com.example.biblioteca.ui.screen
 
+import androidx.compose.foundation.Image // Importante para el logo
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -10,12 +11,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource // Importante para jalar el drawable xml
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.example.biblioteca.ui.viewmodels.AuthViewModel
 import com.example.biblioteca.ui.viewmodels.AuthState
-
+import com.example.biblioteca.R
 @Composable
 fun LoginScreen(
     viewModel: AuthViewModel,
@@ -42,6 +44,9 @@ fun LoginScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
+        // 1. TU LOGO EN VECTOR ARRIBA DEL INICIO DE SESIÓN
+        Image(painter = painterResource(id = R.drawable.logoapp), contentDescription = "Logo", modifier = Modifier.size(130.dp).padding(bottom = 12.dp))
+
         Text(
             text = "Iniciar Sesión",
             style = MaterialTheme.typography.headlineLarge,
@@ -111,7 +116,10 @@ fun LoginScreen(
                         Spacer(modifier = Modifier.height(8.dp))
                         Button(
                             onClick = { viewModel.iniciarSesion(correo, password) },
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(
+                                contentColor = Color.Black // Letras fijas en negro para Reintentar
+                            )
                         ) {
                             Text("Reintentar")
                         }
@@ -120,7 +128,10 @@ fun LoginScreen(
                         Button(
                             onClick = { viewModel.iniciarSesion(correo, password) },
                             modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2F4F4F))
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFF2F4F4F), // Tu verde original
+                                contentColor = Color.Black          // LETRAS DEL BOTÓN EN NEGRO FIJO
+                            )
                         ) {
                             Text("Ingresar")
                         }

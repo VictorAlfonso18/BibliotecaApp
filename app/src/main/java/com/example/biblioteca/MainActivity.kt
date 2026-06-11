@@ -6,8 +6,12 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -146,82 +150,85 @@ fun MainContentWrapper(
     prestamosViewModel: PrestamosViewModel,
     usuariosViewModel: UsuariosViewModel
 ) {
-    Box(modifier = Modifier.fillMaxSize()) {
-            when (currentDestination) {
-                AppDestinations.LOGIN -> {
-                    LoginScreen(
-                        viewModel = authViewModel,
-                        onLoginSuccess = { rolDelUsuario ->
-
-                            if (rolDelUsuario.lowercase() == "admin") {
-                                onRoleChange(UserRole.ADMIN)
-                                onNavigate(AppDestinations.ADMIN_HOME)
-                            } else {
-                                onRoleChange(UserRole.USER)
-                                onNavigate(AppDestinations.HOME)
-                            }
-
-                        },
-                        onNavigateToRegistro = {
-                            onNavigate(AppDestinations.REGISTRO)
-                        }
-                    )
-                }
-                AppDestinations.REGISTRO -> {
-                    BackHandler { onNavigate(AppDestinations.LOGIN) }
-                    RegistroScreen(
-                        viewModel = authViewModel,
-                        onRegistroSuccess = {
+    //  SE AGREGA statusBarsPadding() AQUÍ PARA QUE REFRESCQUE GLOBALMENTE TODAS LAS PANTALLAS
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .statusBarsPadding()
+    ) {
+        when (currentDestination) {
+            AppDestinations.LOGIN -> {
+                LoginScreen(
+                    viewModel = authViewModel,
+                    onLoginSuccess = { rolDelUsuario ->
+                        if (rolDelUsuario.lowercase() == "admin") {
+                            onRoleChange(UserRole.ADMIN)
+                            onNavigate(AppDestinations.ADMIN_HOME)
+                        } else {
                             onRoleChange(UserRole.USER)
                             onNavigate(AppDestinations.HOME)
                         }
-                    )
-                }
+                    },
+                    onNavigateToRegistro = {
+                        onNavigate(AppDestinations.REGISTRO)
+                    }
+                )
+            }
+            AppDestinations.REGISTRO -> {
+                BackHandler { onNavigate(AppDestinations.LOGIN) }
+                RegistroScreen(
+                    viewModel = authViewModel,
+                    onRegistroSuccess = {
+                        onRoleChange(UserRole.USER)
+                        onNavigate(AppDestinations.HOME)
+                    }
+                )
+            }
 
-                // RUTAS DE CLIENTE
-                AppDestinations.HOME -> {
-                    LibrosScreen(
-                        viewModel = librosViewModel,
-                        prestamosViewModel = prestamosViewModel
-                    )
-                }
-                AppDestinations.FAVORITES -> {
-                    PrestamosScreen(
-                        viewModel = prestamosViewModel,
-                        librosViewModel = librosViewModel
-                    )
-                }
-                AppDestinations.PROFILE -> {
-                    PerfilScreen(
-                        viewModel = perfilViewModel,
-                        onSignOutSuccess = {
-                            onRoleChange(UserRole.NONE)
-                            onNavigate(AppDestinations.LOGIN)
-                        }
-                    )
-                }
+            // RUTAS DE CLIENTE
+            AppDestinations.HOME -> {
+                LibrosScreen(
+                    viewModel = librosViewModel,
+                    prestamosViewModel = prestamosViewModel
+                )
+            }
+            AppDestinations.FAVORITES -> {
+                PrestamosScreen(
+                    viewModel = prestamosViewModel,
+                    librosViewModel = librosViewModel
+                )
+            }
+            AppDestinations.PROFILE -> {
+                PerfilScreen(
+                    viewModel = perfilViewModel,
+                    onSignOutSuccess = {
+                        onRoleChange(UserRole.NONE)
+                        onNavigate(AppDestinations.LOGIN)
+                    }
+                )
+            }
 
-                // RUTAS DE ADMINISTRADOR
-                AppDestinations.ADMIN_HOME -> {
-                    AdminLibrosScreen(viewModel = librosViewModel)
-                }
-                AppDestinations.ADMIN_PRESTAMOS -> {
-                    AdminPrestamosScreen(
-                        viewModel = prestamosViewModel,
-                        librosViewModel = librosViewModel,
-                        usuariosViewModel = usuariosViewModel
-                    )
-                }
-                AppDestinations.ADMIN_USUARIOS -> {
-                    AdminUsuariosScreen(
-                        viewModel = usuariosViewModel,
-                        onSignOut = {
-                            perfilViewModel.cerrarSesion()
-                            onRoleChange(UserRole.NONE)
-                            onNavigate(AppDestinations.LOGIN)
-                        }
-                    )
-                }
+            // RUTAS DE ADMINISTRADOR
+            AppDestinations.ADMIN_HOME -> {
+                AdminLibrosScreen(viewModel = librosViewModel)
+            }
+            AppDestinations.ADMIN_PRESTAMOS -> {
+                AdminPrestamosScreen(
+                    viewModel = prestamosViewModel,
+                    librosViewModel = librosViewModel,
+                    usuariosViewModel = usuariosViewModel
+                )
+            }
+            AppDestinations.ADMIN_USUARIOS -> {
+                AdminUsuariosScreen(
+                    viewModel = usuariosViewModel,
+                    onSignOut = {
+                        perfilViewModel.cerrarSesion()
+                        onRoleChange(UserRole.NONE)
+                        onNavigate(AppDestinations.LOGIN)
+                    }
+                )
             }
         }
+    }
 }
