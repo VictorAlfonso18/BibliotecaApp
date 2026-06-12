@@ -28,6 +28,8 @@ fun LoginScreen(
     var correo by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
+    var showRecoveryDialog by remember { mutableStateOf(false) }
+    var recoveryEmail by remember { mutableStateOf("") }
 
     LaunchedEffect(authState) {
         if (authState is AuthState.Success) {
@@ -118,7 +120,7 @@ fun LoginScreen(
                             onClick = { viewModel.iniciarSesion(correo, password) },
                             modifier = Modifier.fillMaxWidth(),
                             colors = ButtonDefaults.buttonColors(
-                                contentColor = Color.Black // Letras fijas en negro para Reintentar
+                                contentColor = Color.Black
                             )
                         ) {
                             Text("Reintentar")
@@ -129,8 +131,8 @@ fun LoginScreen(
                             onClick = { viewModel.iniciarSesion(correo, password) },
                             modifier = Modifier.fillMaxWidth(),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFF2F4F4F), // Tu verde original
-                                contentColor = Color.Black          // LETRAS DEL BOTÓN EN NEGRO FIJO
+                                containerColor = Color(0xFF2F4F4F),
+                                contentColor = Color.Black
                             )
                         ) {
                             Text("Ingresar")
@@ -140,7 +142,9 @@ fun LoginScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // TODO: Aquí agregaremos después el botón de "¿Olvidaste tu contraseña?"
+                TextButton(onClick = { showRecoveryDialog = true }) {
+                    Text("¿Olvidaste tu contraseña?", color = Color.Gray)
+                }
 
                 Text(
                     text = "¿No tienes cuenta? Regístrate aquí",
@@ -148,6 +152,54 @@ fun LoginScreen(
                     modifier = Modifier
                         .clickable { onNavigateToRegistro() }
                         .padding(8.dp)
+                )
+            }
+            if (showRecoveryDialog) {
+                AlertDialog(
+                    onDismissRequest = { showRecoveryDialog = false },
+                    title = { Text("Recuperar contraseña") },
+                    text = {
+                        Column {
+                            Text("Ingresa tu correo electrónico y te enviaremos un enlace para restablecer tu contraseña.", color = Color.Gray)
+                            Spacer(modifier = Modifier.height(16.dp))
+                            OutlinedTextField(
+                                value = recoveryEmail,
+                                onValueChange = { recoveryEmail = it },
+                                label = { Text("Correo Electrónico") },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+
+                            if (authState is AuthState.CorreoEnviado) {
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text("¡Enlace enviado! Revisa tu bandeja de entrada.", color = Color(0xFF388E3C))
+                            } else if (authState is AuthState.Error) {
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text((authState as AuthState.Error).message, color = Color.Red)
+                            }
+                        }
+                    },
+                    confirmButton = {
+                        Button(
+                            onClick = { viewModel.recuperarPassword(recoveryEmail) },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2F4F4F)),
+                            enabled = authState !is AuthState.Loading
+                        ) {
+                            if (authState is AuthState.Loading) {
+                                CircularProgressIndicator(modifier = Modifier.size(16.dp), color = Color.White)
+                            } else {
+                                Text("Enviar enlace")
+                            }
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = {
+                            showRecoveryDialog = false
+                            viewModel.resetState()
+                        }) {
+                            Text("Cancelar", color = Color.Gray)
+                        }
+                    }
                 )
             }
         }

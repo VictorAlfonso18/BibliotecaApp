@@ -29,9 +29,11 @@ android {
 
         val supabaseUrl = properties.getProperty("SUPABASE_URL") ?: ""
         val supabaseKey = properties.getProperty("SUPABASE_ANON_KEY") ?: ""
+        val geminiApiKey = properties.getProperty("GEMINI_API_KEY") ?: ""
 
         buildConfigField("String", "SUPABASE_URL", "\"$supabaseUrl\"")
         buildConfigField("String", "SUPABASE_ANON_KEY", "\"$supabaseKey\"")
+        buildConfigField("String", "GEMINI_API_KEY", "\"$geminiApiKey\"")
     }
 
     buildTypes {

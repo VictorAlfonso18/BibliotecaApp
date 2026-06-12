@@ -54,4 +54,14 @@ class AuthRepository {
     suspend fun signOut() {
         auth.signOut()
     }
+
+    // Enviar correo de recuperacion
+    suspend fun enviarCorreoRecuperacion(correo: String): Result<Unit> {
+        return try {
+            auth.resetPasswordForEmail(correo)
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }

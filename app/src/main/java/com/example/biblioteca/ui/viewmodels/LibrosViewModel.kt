@@ -16,6 +16,7 @@ import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 import kotlinx.serialization.json.*
+import com.example.biblioteca.BuildConfig
 
 sealed class LibrosState {
     object Loading : LibrosState() // Cargando
@@ -121,7 +122,7 @@ class LibrosViewModel: ViewModel() {
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val client = HttpClient(CIO)
-                val apiKey = ""
+                val apiKey = BuildConfig.GEMINI_API_KEY
                 val url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=$apiKey"
 
                 val body = """

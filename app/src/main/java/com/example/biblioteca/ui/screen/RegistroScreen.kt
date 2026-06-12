@@ -149,15 +149,25 @@ fun BotonRegistrar(
 ) {
     Button(
         onClick = {
-            if (nombre.isBlank() || correo.isBlank() || pass.isBlank()) {
-                onError("Por favor, llena todos los campos.")
-            } else if (pass != confirmaPass) {
-                onError("Las contraseñas no coinciden.")
-            } else if (pass.length < 6) {
-                onError("La contraseña debe tener al menos 6 caracteres.")
-            } else {
-                onError(null)
-                viewModel.registrarse(nombre, correo, pass)
+            val emailRegex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$".toRegex()
+
+            when {
+                nombre.isBlank() || correo.isBlank() || pass.isBlank() -> {
+                    onError("¡Ups! Parece que olvidaste llenar algunos campos.")
+                }
+                !correo.matches(emailRegex) -> {
+                    onError("Por favor, ingresa un correo electrónico válido.")
+                }
+                pass.length < 6 -> {
+                    onError("Por tu seguridad, la contraseña debe tener al menos 6 caracteres.")
+                }
+                pass != confirmaPass -> {
+                    onError("Las contraseñas no coinciden. ¡Revisalas de nuevo!")
+                }
+                else -> {
+                    onError(null)
+                    viewModel.registrarse(nombre, correo, pass)
+                }
             }
         },
         modifier = Modifier.fillMaxWidth(),
