@@ -10,6 +10,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -115,10 +116,27 @@ fun AdminUsuariosScreen(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("Control de Usuarios", fontSize = 24.sp, color = Color(0xFF2F4F4F))
+            Text("Control de Usuarios", fontSize = 24.sp, color = Color(0xFF2F4F4F), fontWeight = FontWeight.Bold)
 
-            TextButton(onClick = onSignOut) {
-                Text("Salir", color = Color.Red)
+            // Modificado para verse estilizado como cápsula moderna
+            OutlinedButton(
+                onClick = onSignOut,
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = Color(0xFFD32F2F)
+                ),
+                border = androidx.compose.foundation.BorderStroke(
+                    width = 1.dp,
+                    color = Color(0xFFD32F2F).copy(alpha = 0.5f)
+                ),
+                shape = androidx.compose.foundation.shape.RoundedCornerShape(50),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+                modifier = Modifier.height(34.dp)
+            ) {
+                Text(
+                    text = "Salir",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
             }
         }
 

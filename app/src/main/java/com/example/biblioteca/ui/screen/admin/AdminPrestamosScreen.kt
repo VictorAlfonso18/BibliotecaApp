@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.biblioteca.ui.viewmodels.PrestamosState
@@ -133,7 +134,7 @@ fun AdminPrestamosScreen(
         OutlinedTextField(
             value = searchQuery,
             onValueChange = { searchQuery = it },
-            label = { Text("Buscar por cliente, libro o folio...") }, // Guía actualizada
+            label = { Text("Buscar por cliente, libro o folio...") },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true
         )
@@ -142,13 +143,28 @@ fun AdminPrestamosScreen(
 
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            listOf("Todos", "pendiente", "activo",  "devuelto").forEach { estadoFiltro ->
+            listOf("Todos", "pendiente", "activo", "devuelto").forEach { estadoFiltro ->
+                val estaSeleccionado = selectedFilter == estadoFiltro.lowercase()
                 FilterChip(
-                    selected = selectedFilter == estadoFiltro.lowercase(),
+                    selected = estaSeleccionado,
                     onClick = { selectedFilter = estadoFiltro.lowercase() },
-                    label = { Text(estadoFiltro.uppercase()) }
+                    modifier = Modifier.weight(1f),
+                    label = {
+                        Text(
+                            text = estadoFiltro.uppercase(),
+                            fontSize = 10.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = Color(0xFF2F4F4F),
+                        selectedLabelColor = Color.White,
+                        containerColor = Color(0xFFF5EFE6),
+                        labelColor = Color(0xFF3E2723)
+                    )
                 )
             }
         }
@@ -199,7 +215,6 @@ fun AdminPrestamosScreen(
 
                         Spacer(modifier = Modifier.height(6.dp))
 
-                        // Mostramos fechas con formato legible
                         prestamo.fechaSolicitud?.let { Text("Solicitado: ${formatearFechaAdmin(it)}", style = MaterialTheme.typography.bodyMedium) }
                         prestamo.fechaPrestamo?.let { Text("Entregado: ${formatearFechaAdmin(it)}", style = MaterialTheme.typography.bodyMedium) }
                         prestamo.fechaDevolucion?.let { Text("Devuelto: ${formatearFechaAdmin(it)}", style = MaterialTheme.typography.bodyMedium) }
@@ -221,7 +236,6 @@ fun AdminPrestamosScreen(
     }
 }
 
-// Función auxiliar para transformar el formato ISO de Supabase a un formato legible en la lista
 fun formatearFechaAdmin(fechaIso: String): String {
     return try {
         val fechaLimpia = fechaIso.substringBefore(".")

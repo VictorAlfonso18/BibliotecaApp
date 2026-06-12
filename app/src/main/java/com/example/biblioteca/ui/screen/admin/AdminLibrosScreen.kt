@@ -2,6 +2,7 @@ package com.example.biblioteca.ui.screen.admin
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -25,11 +26,20 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AdminLibrosScreen(viewModel: LibrosViewModel) {
     val estado by viewModel.librosState.collectAsState()
 
     var searchQuery by remember { mutableStateOf("") }
+    var categoriaSeleccionada by remember { mutableStateOf("Todos") }
+
+    val categorias = listOf(
+        "Todos", "+18", "Biografía", "Ciencia ficcion", "Clásico",
+        "Cuentos", "Fantasía", "Infantil", "Novela", "Novela Histórica",
+        "Novela Psicológica", "Realismo Mágico", "Terror", "Thriller", "Épico"
+    )
+
     var showDialog by remember { mutableStateOf(false) }
     var libroActual by remember { mutableStateOf<Libro?>(null) }
 
@@ -43,9 +53,12 @@ fun AdminLibrosScreen(viewModel: LibrosViewModel) {
         emptyList()
     }
 
-    val librosFiltrados = librosReales.filter {
-        it.titulo.contains(searchQuery, ignoreCase = true) ||
-                it.autor.contains(searchQuery, ignoreCase = true)
+    val librosFiltrados = librosReales.filter { libro ->
+        val coincideBusqueda = libro.titulo.contains(searchQuery, ignoreCase = true) ||
+                libro.autor.contains(searchQuery, ignoreCase = true)
+        val coincideCategoria = categoriaSeleccionada == "Todos" ||
+                libro.categoria.contains(categoriaSeleccionada, ignoreCase = true)
+        coincideBusqueda && coincideCategoria
     }
 
     Scaffold(
@@ -73,7 +86,29 @@ fun AdminLibrosScreen(viewModel: LibrosViewModel) {
                 singleLine = true
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(12.dp))
+
+            LazyRow(
+                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(categorias) { categoria ->
+                    val estaSeleccionado = categoria == categoriaSeleccionada
+                    FilterChip(
+                        selected = estaSeleccionado,
+                        onClick = { categoriaSeleccionada = categoria },
+                        label = { Text(text = categoria) },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = Color(0xFF2F4F4F),
+                            selectedLabelColor = Color.White,
+                            containerColor = Color(0xFFF5EFE6),
+                            labelColor = Color(0xFF3E2723)
+                        )
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
 
             if (estado is LibrosState.Loading) {
                 Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
@@ -185,7 +220,6 @@ fun LibroDialog(
                 val inputStream = contexto.contentResolver.openInputStream(uri)
                 imagenBytes = inputStream?.readBytes()
                 inputStream?.close()
-                // Mostramos nombre local como preview
                 urlPortada = uri.lastPathSegment ?: "imagen seleccionada"
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -207,7 +241,6 @@ fun LibroDialog(
                 OutlinedTextField(value = categoria, onValueChange = { categoria = it }, label = { Text("Categoría") }, modifier = Modifier.fillMaxWidth())
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Selector de portada
                 Text("Portada", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
                 Spacer(modifier = Modifier.height(4.dp))
                 Row(
@@ -215,14 +248,12 @@ fun LibroDialog(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    // Preview de la imagen actual o seleccionada
                     Card(
                         modifier = Modifier.size(width = 60.dp, height = 80.dp),
                         colors = CardDefaults.cardColors(containerColor = Color(0xFF6D9886))
                     ) {
                         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             if (imagenBytes != null) {
-                                // Imagen recién seleccionada de galería
                                 val bitmap = remember(imagenBytes) {
                                     android.graphics.BitmapFactory.decodeByteArray(imagenBytes, 0, imagenBytes!!.size)
                                 }
@@ -235,7 +266,6 @@ fun LibroDialog(
                                     )
                                 }
                             } else if (!libro?.urlPortada.isNullOrEmpty()) {
-                                // Portada existente en Supabase
                                 AsyncImage(
                                     model = libro?.urlPortada,
                                     contentDescription = "Portada actual",
@@ -263,7 +293,6 @@ fun LibroDialog(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // IA para descripción
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
