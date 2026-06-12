@@ -100,25 +100,18 @@ fun LibrosScreen(
                     Text("No hay libros disponibles en el catálogo en este momento.")
                 } else {
 
-                    // ========================================================
-                    // 🔥 MAGIA AQUÍ: GENERAR LAS ETIQUETAS DE FORMA DINÁMICA
-                    // ========================================================
                     val listaCategorias = remember(librosBD) {
-                        // 1. Agarramos las categorías de los libros, quitamos nulos o vacíos y limpiamos espacios.
                         val categoriasDeLaBD = librosBD.mapNotNull { libro ->
                             libro.categoria?.trim()?.lowercase()?.replaceFirstChar { it.uppercase() }
-                        }.filter { it.isNotEmpty() }.distinct() // distinct() elimina repetidos
+                        }.filter { it.isNotEmpty() }.distinct()
 
-                        // 2. Le pegamos "Todos" al inicio de la lista dinámica
                         listOf("Todos") + categoriasDeLaBD.sorted()
                     }
 
-                    // Si por alguna razón la categoría seleccionada ya no existe en la lista, la reseteamos a "Todos"
                     if (categoriaSeleccionada !in listaCategorias) {
                         categoriaSeleccionada = "Todos"
                     }
 
-                    // PINTAR LOS CHIPS DINÁMICOS
                     LazyRow(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
@@ -138,7 +131,6 @@ fun LibrosScreen(
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // FILTRADO CON LAS CATEGORÍAS DINÁMICAS
                     val librosFiltrados = librosBD.filter { libro ->
                         val coincideTexto = libro.titulo.contains(textoBusqueda, ignoreCase = true) ||
                                 libro.autor.contains(textoBusqueda, ignoreCase = true)
@@ -174,7 +166,6 @@ fun LibrosScreen(
     }
 }
 
-// El componente ItemLibro se mantiene igual abajo...
 @Composable
 fun ItemLibro(libro: Libro, onAgregarClick: () -> Unit) {
     var expandido by remember { mutableStateOf(false) }
@@ -213,10 +204,16 @@ fun ItemLibro(libro: Libro, onAgregarClick: () -> Unit) {
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(text = libro.descripcion ?: "Sin descripción disponible.", color = Color(0xFF424242))
                     Spacer(modifier = Modifier.height(10.dp))
-                    if (libro.disponible > 0) {
-                        Button(onClick = { onAgregarClick() }, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2F4F4F), contentColor = Color.Black)) {
-                            Text("Solicitar Préstamo")
-                        }
+
+                    Button(
+                        onClick = { onAgregarClick() },
+                        enabled = libro.disponible > 0,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF2F4F4F),
+                            contentColor = Color.Black
+                        )
+                    ) {
+                        Text(if (libro.disponible > 0) "Solicitar Préstamo" else "Libro Agotado")
                     }
                 }
             }
