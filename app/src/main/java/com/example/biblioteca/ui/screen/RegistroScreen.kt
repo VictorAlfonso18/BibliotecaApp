@@ -19,19 +19,27 @@ fun RegistroScreen(
 
     val authState by viewModel.authState.collectAsState()
 
+    // Variables de los datos
     var nombre by remember { mutableStateOf("") }
     var correo by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmarPassword by remember { mutableStateOf("") }
 
-    var errorLocal by remember { mutableStateOf<String?>(null) }
+    // Variables para mostrar el error EN TIEMPO REAL de cada campo
+    var nombreError by remember { mutableStateOf<String?>(null) }
+    var correoError by remember { mutableStateOf<String?>(null) }
+    var passError by remember { mutableStateOf<String?>(null) }
+    var confirmaError by remember { mutableStateOf<String?>(null) }
+
+    // Error general para el botón
+    var errorGeneral by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(authState) {
         if (authState is AuthState.Success) {
             onRegistroSuccess()
             viewModel.resetState()
         } else if (authState is AuthState.Error) {
-            errorLocal = null
+            errorGeneral = null
         }
     }
 
@@ -64,52 +72,124 @@ fun RegistroScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
+                // 1. CAMPO NOMBRE COMPLETO
                 OutlinedTextField(
                     value = nombre,
-                    onValueChange = { nombre = it },
+                    onValueChange = { newValue ->
+                        nombre = newValue
+                        // Validación en tiempo real: Solo letras y espacios
+                        val regexNombre = "^[a-zA-ZáéíóúÁÉÍÓÚñÑ\\s]*$".toRegex()
+                        nombreError = if (!newValue.matches(regexNombre)) {
+                            "Solo se aceptan letras y espacios."
+                        } else {
+                            null
+                        }
+                    },
                     label = { Text("Nombre Completo") },
                     placeholder = { Text("Juan Pérez") },
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    isError = nombreError != null,
+                    supportingText = { if (nombreError != null) Text(nombreError!!) }
                 )
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(6.dp))
 
+                // 2. CAMPO CORREO ELECTRÓNICO
                 OutlinedTextField(
                     value = correo,
-                    onValueChange = { correo = it },
+                    onValueChange = { newValue ->
+                        correo = newValue
+
+                        // Extraemos lo que el usuario escribe después del '@'
+                        val dominioEscrito = newValue.substringAfter("@", missingDelimiterValue = "")
+
+                        correoError = when {
+                            // 1. Bloquea espacios y símbolos raros al instante
+                            !newValue.matches("^[a-zA-Z0-9@.]*$".toRegex()) -> {
+                                "No se aceptan símbolos raros ni espacios."
+                            }
+                            // 2. Si ya puso el '@', verificamos letra por letra que esté escribiendo 'gmail.com'
+                            newValue.contains("@") && dominioEscrito.isNotEmpty() && !"gmail.com".startsWith(dominioEscrito) -> {
+                                "El dominio debe ser exactamente @gmail.com"
+                            }
+                            // 3. Si se pasa de largo escribiendo (ej. @gmail.coma)
+                            newValue.contains("@") && dominioEscrito.length > 9 -> {
+                                "El dominio debe ser exactamente @gmail.com"
+                            }
+                            else -> null
+                        }
+                    },
                     label = { Text("Correo Electrónico") },
-                    placeholder = { Text("juan@correo.com") },
+                    placeholder = { Text("juan@gmail.com") },
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    isError = correoError != null,
+                    supportingText = { if (correoError != null) Text(correoError!!) }
                 )
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(6.dp))
 
+                // 3. CAMPO CONTRASEÑA
                 OutlinedTextField(
                     value = password,
-                    onValueChange = { password = it },
+                    onValueChange = { newValue ->
+                        // Bloqueamos que no escriba más de 12 caracteres
+                        if (newValue.length <= 12) {
+                            password = newValue
+                        }
+
+                        passError = if (newValue.isNotEmpty() && newValue.length < 6) {
+                            "Mínimo 6 caracteres."
+                        } else if (newValue.length >= 12) {
+                            "Alcanzaste el máximo de 12 caracteres."
+                        } else {
+                            null
+                        }
+
+                        // Si ya había escrito la confirmación y altera la original, revisamos de nuevo
+                        if (confirmarPassword.isNotEmpty() && confirmarPassword != newValue) {
+                            confirmaError = "Las contraseñas ya no coinciden."
+                        } else if (confirmarPassword == newValue) {
+                            confirmaError = null
+                        }
+                    },
                     label = { Text("Contraseña") },
                     singleLine = true,
                     visualTransformation = PasswordVisualTransformation(),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    isError = passError != null,
+                    supportingText = { if (passError != null) Text(passError!!) }
                 )
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(6.dp))
 
+                // 4. CAMPO CONFIRMAR CONTRASEÑA
                 OutlinedTextField(
                     value = confirmarPassword,
-                    onValueChange = { confirmarPassword = it },
+                    onValueChange = { newValue ->
+                        if (newValue.length <= 12) {
+                            confirmarPassword = newValue
+                        }
+
+                        confirmaError = if (newValue.isNotEmpty() && newValue != password) {
+                            "Las contraseñas no coinciden."
+                        } else {
+                            null
+                        }
+                    },
                     label = { Text("Confirmar Contraseña") },
                     singleLine = true,
                     visualTransformation = PasswordVisualTransformation(),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    isError = confirmaError != null,
+                    supportingText = { if (confirmaError != null) Text(confirmaError!!) }
                 )
 
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
-                if (errorLocal != null) {
-                    Text(text = errorLocal!!, color = MaterialTheme.colorScheme.error)
+                if (errorGeneral != null) {
+                    Text(text = errorGeneral!!, color = MaterialTheme.colorScheme.error)
                     Spacer(modifier = Modifier.height(8.dp))
                 }
 
@@ -123,13 +203,13 @@ fun RegistroScreen(
                         val errorMsg = (authState as AuthState.Error).message
                         Text(text = errorMsg, color = MaterialTheme.colorScheme.error)
                         Spacer(modifier = Modifier.height(8.dp))
-                        BotonRegistrar(nombre, correo, password, confirmarPassword, viewModel) { error ->
-                            errorLocal = error
+                        BotonRegistrar(nombre, correo, password, confirmarPassword, nombreError, correoError, passError, confirmaError, viewModel) { error ->
+                            errorGeneral = error
                         }
                     }
                     else -> {
-                        BotonRegistrar(nombre, correo, password, confirmarPassword, viewModel) { error ->
-                            errorLocal = error
+                        BotonRegistrar(nombre, correo, password, confirmarPassword, nombreError, correoError, passError, confirmaError, viewModel) { error ->
+                            errorGeneral = error
                         }
                     }
                 }
@@ -144,25 +224,27 @@ fun BotonRegistrar(
     correo: String,
     pass: String,
     confirmaPass: String,
+    nombreError: String?,
+    correoError: String?,
+    passError: String?,
+    confirmaError: String?,
     viewModel: AuthViewModel,
     onError: (String?) -> Unit
 ) {
     Button(
         onClick = {
-            val emailRegex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$".toRegex()
+            // El regex estricto final para asegurar la estructura del correo al momento de hacer click
+            val regexCorreoFinal = "^[a-zA-Z0-9]+@gmail\\.com$".toRegex()
 
             when {
-                nombre.isBlank() || correo.isBlank() || pass.isBlank() -> {
+                nombre.isBlank() || correo.isBlank() || pass.isBlank() || confirmaPass.isBlank() -> {
                     onError("¡Ups! Parece que olvidaste llenar algunos campos.")
                 }
-                !correo.matches(emailRegex) -> {
-                    onError("Por favor, ingresa un correo electrónico válido.")
+                nombreError != null || correoError != null || passError != null || confirmaError != null -> {
+                    onError("Por favor, corrige los errores en rojo antes de continuar.")
                 }
-                pass.length < 6 -> {
-                    onError("Por tu seguridad, la contraseña debe tener al menos 6 caracteres.")
-                }
-                pass != confirmaPass -> {
-                    onError("Las contraseñas no coinciden. ¡Revisalas de nuevo!")
+                !correo.matches(regexCorreoFinal) -> {
+                    onError("Asegúrate de que el correo termine exactamente en @gmail.com")
                 }
                 else -> {
                     onError(null)

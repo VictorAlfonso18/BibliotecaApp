@@ -42,7 +42,8 @@ fun LibrosScreen(
             mensaje = (estadoPrestamo as PrestamosState.Error).message
             solicitudEnviada = false
         } else if (estadoPrestamo is PrestamosState.Success && solicitudEnviada) {
-            mensaje = "¡Préstamo solicitado exitosamente!"
+            // AQUÍ ESTÁ EL PRIMER CAMBIO
+            mensaje = "¡Solicitud en proceso! Ve a la biblioteca y muestra tu código QR."
             solicitudEnviada = false
         }
     }
@@ -154,7 +155,8 @@ fun LibrosScreen(
                                     } else {
                                         prestamosViewModel.solicitarNuevoPrestamo(libro.id)
                                         solicitudEnviada = true
-                                        mensaje = "Procesando solicitud para '${libro.titulo}'..."
+                                        // AQUÍ ESTÁ EL SEGUNDO CAMBIO
+                                        mensaje = "Generando folio para '${libro.titulo}'..."
                                     }
                                 })
                             }
