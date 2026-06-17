@@ -93,12 +93,22 @@ fun AdminPrestamosScreen(
         uri?.let {
             try {
                 context.contentResolver.openOutputStream(it)?.use { outputStream ->
-                    val csvHeader = "ID Prestamo,Usuario,Libro,Fecha Solicitud,Estado\n"
+                    // Modificado el encabezado para denotar el cambio dinámico de la fecha de cierre/límite
+                    val csvHeader = "ID Prestamo,Usuario,Libro,Fecha Solicitud,Fecha Evento,Estado\n"
                     val csvRows = prestamosFiltrados.joinToString("\n") { p ->
                         val libro = catalogoLibros.find { l -> l.id == p.libroId }?.titulo ?: "Desconocido"
                         val usuario = catalogoUsuarios.find { u -> u.id == p.usuarioId }?.nombre ?: "Desconocido"
-                        val fecha = p.fechaSolicitud?.let { f -> formatearFechaAdmin(f) } ?: "Sin fecha"
-                        "${p.id},$usuario,$libro,$fecha,${p.estado}"
+
+                        // Selección dinámica de la fecha en el reporte Excel
+                        val fechaEvento = if (p.estado.lowercase() == "activo") {
+                            p.fechaEntregaLimite?.let { f -> "Límite: " + formatearFechaAdmin(f) } ?: "Sin límite"
+                        } else if (p.estado.lowercase() == "devuelto") {
+                            p.fechaDevolucion?.let { f -> "Devuelto: " + formatearFechaAdmin(f) } ?: "Sin devolución"
+                        } else {
+                            "N/A"
+                        }
+
+                        "${p.id},$usuario,$libro,${p.fechaSolicitud?.let { f -> formatearFechaAdmin(f) } ?: "Sin fecha"},$fechaEvento,${p.estado}"
                     }
                     outputStream.write((csvHeader + csvRows).toByteArray())
                 }
@@ -217,7 +227,17 @@ fun AdminPrestamosScreen(
 
                         prestamo.fechaSolicitud?.let { Text("Solicitado: ${formatearFechaAdmin(it)}", style = MaterialTheme.typography.bodyMedium) }
                         prestamo.fechaPrestamo?.let { Text("Entregado: ${formatearFechaAdmin(it)}", style = MaterialTheme.typography.bodyMedium) }
-                        prestamo.fechaDevolucion?.let { Text("Devuelto: ${formatearFechaAdmin(it)}", style = MaterialTheme.typography.bodyMedium) }
+
+                        // Modificación de la visualización condicional para el administrador
+                        if (prestamo.estado.lowercase() == "activo") {
+                            prestamo.fechaEntregaLimite?.let {
+                                Text("Fecha límite: ${formatearFechaAdmin(it)}", style = MaterialTheme.typography.bodyMedium, color = Color(0xFF388E3C), fontWeight = FontWeight.Medium)
+                            }
+                        } else if (prestamo.estado.lowercase() == "devuelto") {
+                            prestamo.fechaDevolucion?.let {
+                                Text("Devuelto: ${formatearFechaAdmin(it)}", style = MaterialTheme.typography.bodyMedium)
+                            }
+                        }
 
                         Spacer(modifier = Modifier.height(6.dp))
 

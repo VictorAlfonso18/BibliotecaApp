@@ -11,5 +11,6 @@ data class Prestamo(
     @SerialName("id_libro") val libroId: String? = "",
     @SerialName("fecha_solicitud") val fechaSolicitud: String? = null,
     @SerialName("fecha_prestamo") val fechaPrestamo: String? = null,
-    @SerialName("fecha_devolucion") val fechaDevolucion: String? = null
+    @SerialName("fecha_devolucion") val fechaDevolucion: String? = null,
+    @SerialName("fecha_entrega_limite") val fechaEntregaLimite: String? = null
 )

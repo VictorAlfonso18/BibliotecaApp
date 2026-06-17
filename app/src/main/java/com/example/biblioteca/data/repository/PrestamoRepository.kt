@@ -5,6 +5,7 @@ import com.example.biblioteca.core.SupabaseClientHelper
 import com.example.biblioteca.data.model.Prestamo
 import io.github.jan.supabase.postgrest.from
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
@@ -12,11 +13,22 @@ import java.util.TimeZone
 class PrestamoRepository {
     private val db = SupabaseClientHelper.client.from("prestamos")
 
-    // Helper para obtener la fecha actual
+    // Helper para obtener la fecha actual en formato ISO UTC para Supabase
     private fun obtenerFechaActualUTC(): String {
         val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US)
         sdf.timeZone = TimeZone.getTimeZone("UTC")
         return sdf.format(Date())
+    }
+
+    // Calcula el día de hoy y le añade una semana de vigencia para el plazo de entrega
+    private fun obtenerFechaDevolucionLimiteUTC(): String {
+        val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US)
+        sdf.timeZone = TimeZone.getTimeZone("UTC")
+
+        val calendario = Calendar.getInstance()
+        calendario.add(Calendar.DAY_OF_YEAR, 7) // Suma 7 días naturales de plazo
+
+        return sdf.format(calendario.time)
     }
 
     // Solicitar prestamo
@@ -58,7 +70,7 @@ class PrestamoRepository {
         }
     }
 
-    // Actualizar estado del prestamo
+    // Actualizar estado del prestamo y calcular las marcas de tiempo correspondientes
     suspend fun actualizarEstadoPrestamo(idPrestamo: String, nuevoEstado: String): Boolean {
         return try {
             val fechaActual = obtenerFechaActualUTC()
@@ -67,8 +79,18 @@ class PrestamoRepository {
                 set("estado", nuevoEstado)
 
                 if (nuevoEstado == "activo") {
+                    // El alumno retira el libro hoy
                     set("fecha_prestamo", fechaActual)
+
+                    // Se almacena el límite en una columna específica para no pisar la devolución real
+                    val fechaLimite = obtenerFechaDevolucionLimiteUTC()
+                    set("fecha_entrega_limite", fechaLimite)
+
+                    // Garantizamos que la fecha de devolución real empiece limpia
+                    set<String>("fecha_devolucion", null)
+
                 } else if (nuevoEstado == "devuelto") {
+                    // El alumno regresa el libro hoy, registrando la fecha de entrega final
                     set("fecha_devolucion", fechaActual)
                 }
             }) {

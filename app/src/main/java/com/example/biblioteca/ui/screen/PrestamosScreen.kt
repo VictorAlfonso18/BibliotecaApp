@@ -190,14 +190,27 @@ fun ItemPrestamo(prestamo: Prestamo, catalogo: List<Libro>, onVerQRClick: (Strin
 
             Spacer(modifier = Modifier.height(8.dp))
 
+            // Muestra siempre cuándo se hizo la solicitud original
             prestamo.fechaSolicitud?.let {
                 Text("Solicitado el: ${formatearFecha(it)}")
             }
+
+            // Muestra la fecha en la que el administrador le escaneó el QR y le entregó el libro
             prestamo.fechaPrestamo?.let {
                 Text("Entregado el: ${formatearFecha(it)}")
             }
-            prestamo.fechaDevolucion?.let {
-                Text("Devuelto el: ${formatearFecha(it)}")
+
+            // MODIFICACIÓN DINÁMICA DE FECHAS
+            // Si el estado es activo, mostramos la fecha límite calculada por el repositorio
+            if (prestamo.estado.lowercase() == "activo") {
+                prestamo.fechaEntregaLimite?.let {
+                    Text("Hasta el: ${formatearFecha(it)}", fontWeight = FontWeight.Medium, color = Color(0xFF2E7D32))
+                }
+            } else if (prestamo.estado.lowercase() == "devuelto") {
+                // Si ya cambió a devuelto, mostramos la fecha de cierre real
+                prestamo.fechaDevolucion?.let {
+                    Text("Devuelto el: ${formatearFecha(it)}")
+                }
             }
 
             Spacer(modifier = Modifier.height(8.dp))

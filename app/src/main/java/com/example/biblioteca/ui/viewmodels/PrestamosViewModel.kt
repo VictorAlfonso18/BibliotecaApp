@@ -25,6 +25,7 @@ class PrestamosViewModel : ViewModel() {
     private val _prestamosState = MutableStateFlow<PrestamosState>(PrestamosState.Loading)
     val prestamosState: StateFlow<PrestamosState> = _prestamosState.asStateFlow()
 
+    // Carga los préstamos del alumno autenticado
     fun cargarMisPrestamos() {
         viewModelScope.launch {
             _prestamosState.value = PrestamosState.Loading
@@ -41,6 +42,7 @@ class PrestamosViewModel : ViewModel() {
         }
     }
 
+    // Permite al alumno solicitar la reserva de un libro
     fun solicitarNuevoPrestamo(idLibro: String?) {
         viewModelScope.launch {
             _prestamosState.value = PrestamosState.Loading
@@ -68,6 +70,7 @@ class PrestamosViewModel : ViewModel() {
         }
     }
 
+    // Carga las solicitudes pendientes para validación del administrador
     fun cargarPrestamosPendientes() {
         viewModelScope.launch {
             _prestamosState.value = PrestamosState.Loading
@@ -75,6 +78,7 @@ class PrestamosViewModel : ViewModel() {
         }
     }
 
+    // Carga el listado completo de registros históricos
     fun cargarTodosLosPrestamos() {
         viewModelScope.launch {
             _prestamosState.value = PrestamosState.Loading
@@ -82,6 +86,7 @@ class PrestamosViewModel : ViewModel() {
         }
     }
 
+    // Procesa el escaneo del código QR para avanzar en el ciclo de vida del préstamo
     fun procesarCodigoQR(idPrestamoEscaneado: String) {
         viewModelScope.launch {
             _prestamosState.value = PrestamosState.Loading
@@ -103,6 +108,7 @@ class PrestamosViewModel : ViewModel() {
                 }
             }
 
+            // Realiza la llamada al repositorio que se encarga de inyectar las marcas de tiempo automatizadas
             val exito = prestamoRepository.actualizarEstadoPrestamo(idPrestamoEscaneado, nuevoEstado)
 
             if (exito) {
